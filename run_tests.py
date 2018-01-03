@@ -15,12 +15,17 @@ from django_nose import NoseTestSuiteRunner
 
 
 def run_tests(*test_args, **kwargs):
-    test_args = ['ambition_utils']
+    print('running tests!!!!!!!!!!!!!!!!!')
+    print(test_args)
+    print(kwargs)
+    if not test_args:
+        test_args = ['ambition_utils']
 
     kwargs.setdefault('interactive', False)
 
     test_runner = NoseTestSuiteRunner(**kwargs)
 
+    print('calling with', test_args)
     failures = test_runner.run_tests(test_args)
     sys.exit(failures)
 
