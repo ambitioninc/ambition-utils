@@ -53,7 +53,10 @@ class RecurrenceForm(forms.Form):
     )
 
     # The time zone which the submitted time is treated as. The submitted time is converted to utc
-    time_zone = forms.ChoiceField(choices=get_time_zones(return_as_tuple=True))
+    time_zone = forms.ChoiceField(
+        choices=get_time_zones(return_as_tuple=True),
+        error_messages={'required': 'Time Zone is required'},
+    )
 
     # Type of interval - daily, weekly, etc
     freq = forms.ChoiceField(
@@ -202,7 +205,8 @@ class RecurrenceForm(forms.Form):
         rrule_model.rrule_params = params
         rrule_model.time_zone = self.cleaned_data.get('time_zone')
         for key, value in kwargs.items():
-            setattr(rrule_model, key, value)
+            if hasattr(rrule, key):
+                setattr(rrule_model, key, value)
 
         rrule_model.save()
 
