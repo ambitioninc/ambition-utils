@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 
 from django.core.exceptions import ValidationError
 from django.db.transaction import atomic
@@ -18,7 +18,7 @@ class NestedFormMixinBase(object):
         form_prefixes = {}
 
         for nested_form_config in self.nested_form_configs:
-            form_kwargs = copy(kwargs)
+            form_kwargs = deepcopy(kwargs)
             prefix = nested_form_config.get('field_prefix')
 
             # Check if this form class already exists
