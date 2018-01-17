@@ -68,23 +68,6 @@ class NestedFormMixinBase(object):
         # Get the required flag value
         return self.cleaned_data.get(nested_form['config'].get('required_key'))
 
-    # def get_fields_to_ignore(self):
-    #     """
-    #     Determine which fields should be ignored based on the form's requirement flag
-    #     """
-    #     fields_to_ignore = set()
-    #
-    #     # Loop over each form and get its fields to ignore
-    #     for form in self.nested_forms:
-    #         if not self.form_is_required(form):
-    #             fields_to_ignore = {
-    #                 name
-    #                 for name, field in form.fields.items()
-    #             }
-    #         fields_to_ignore.update(form.get_fields_to_ignore())
-    #
-    #     return fields_to_ignore
-
     def full_clean(self):
         """
         Cleans all of self.data and populates self._errors and

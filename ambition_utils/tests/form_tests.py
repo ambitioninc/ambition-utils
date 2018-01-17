@@ -169,19 +169,62 @@ class NestedFormMixinBaseTest(TestCase):
         """
         Makes sure parent form save is called
         """
-        class ParentForm(forms.Form):
+        class ParentForm1(forms.Form):
 
             def save(self):
                 return 'saved'
 
 
-        class ChildForm(NestedFormMixinBase, ParentForm):
+        class ChildForm(NestedFormMixinBase, ParentForm1):
             pass
 
 
         form = ChildForm()
 
         self.assertEqual(form.save(), 'saved')
+
+    def test_form_is_required(self):
+        """
+        Should return True when required is set, otherwise checks the flag value
+        """
+        class ParentForm1(NestedFormMixinBase, forms.Form):
+            the_key = forms.BooleanField(required=False)
+
+
+        # Required in config
+        nested_form = {
+            'config': {
+                'required': True
+            }
+        }
+        form = ParentForm1(data={})
+        self.assertTrue(form.is_valid())
+
+        self.assertTrue(form.form_is_required(nested_form))
+
+        # Required from flag
+        nested_form = {
+            'config': {
+                'required_key': 'the_key'
+            }
+        }
+        form = ParentForm1(data={
+            'the_key': '1'
+        })
+        self.assertTrue(form.is_valid())
+
+        self.assertTrue(form.form_is_required(nested_form))
+
+        # Not required from flag
+        nested_form = {
+            'config': {
+                'required_key': 'the_key'
+            }
+        }
+        form = ParentForm1(data={})
+        self.assertTrue(form.is_valid())
+
+        self.assertFalse(form.form_is_required(nested_form))
 
 
 class NestedFormMixinTest(TestCase):

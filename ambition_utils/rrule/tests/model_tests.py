@@ -68,8 +68,9 @@ class RRuleTest(TestCase):
 
         # For coverage run the handler
         with freeze_time('1-3-2017'):
-            task = RecurrenceTask()
-            task.run()
+            handler = MockHandler()
+
+            self.assertTrue(handler.handle(None))
 
     def test_get_next_occurrence_first_is_not_occurrence(self):
         """
