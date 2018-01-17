@@ -72,20 +72,22 @@ class NestedFormMixinBase(object):
         """
         Cleans all of self.data and populates self._errors and
         self.cleaned_data.
+
+        This is copied from django with an addition at the bottom
         """
+        # This is the django code
         self._errors = ErrorDict()
-        if not self.is_bound:  # Stop further processing.
+        if not self.is_bound:  # pragma: no cover
             return
         self.cleaned_data = {}
-        # If the form is permitted to be empty, and none of the form data has
-        # changed from the initial data, short circuit any validation.
-        if self.empty_permitted and not self.has_changed():
+        if self.empty_permitted and not self.has_changed():  # pragma: no cover
             return
 
         self._clean_fields()
         self._clean_form()
         self._post_clean()
 
+        # This is the additional code that updates the form's errors with the nested form's errors
         required_forms = self.get_required_forms()
         for form in required_forms:
             self._errors.update(form['instance'].errors)
