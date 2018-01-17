@@ -2,7 +2,8 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from ambition_utils.forms import NestedFormMixin, NestedFormMixinBase
+from ambition_utils.forms import NestedFormMixin, NestedFormMixinBase, NestedModelFormMixin
+from ambition_utils.tests.models import FakeModel
 
 
 class NestedForm1(NestedFormMixin, forms.Form):
@@ -137,6 +138,32 @@ class FormWithOptional(NestedFormMixin, forms.Form):
     # Flags for the 2 nested forms
     nested_form_1_required = forms.BooleanField(required=False)
     optional_required = forms.BooleanField(required=False)
+
+
+class ModelFormWithNestedForms(NestedModelFormMixin, forms.ModelForm):
+
+    class Meta:
+        model = FakeModel
+        fields = ['name']
+
+    nested_form_configs = [{
+        'class': OptionalForm,
+        'key': 'optional',
+        'required': False,
+        'field_prefix': 'optional_1',
+        'required_key': 'optional_required',
+        'pre': True,
+    }, {
+        'class': OptionalForm,
+        'key': 'optional_2',
+        'field_prefix': 'optional_2',
+        'required_key': 'optional_required_2',
+        'required': False,
+        'post': True,
+    }]
+
+    optional_required = forms.BooleanField(required=False)
+    optional_required_2 = forms.BooleanField(required=False)
 
 
 class NestedFormMixinBaseTest(TestCase):
@@ -326,3 +353,26 @@ class NestedFormMixinTest(TestCase):
         return_value = form.save()
 
         self.assertEqual(return_value, 'the object')
+
+
+class NestedModelFormMixinTest(TestCase):
+
+    def test_save(self):
+        """
+        Verifies the model save still works as expected
+        """
+        data = {
+            'name': 'just a fake name',
+            'optional_required': 'True',
+            'optional_required_2': 'True',
+            'seven': '7',
+        }
+
+        form = ModelFormWithNestedForms(data=data)
+
+        self.assertTrue(form.is_valid())
+
+        form.save()
+
+        fake_model = FakeModel.objects.get()
+        self.assertEqual(fake_model.name, 'just a fake name')
