@@ -45,10 +45,10 @@ class NestedFormMixinBase(object):
                 'config': nested_form_config
             })
 
-    def get_pre_save_method_kwargs(self):
+    def get_pre_save_method_kwargs(self):  # pragma: no cover
         return {}
 
-    def get_post_save_method_kwargs(self, **kwargs):
+    def get_post_save_method_kwargs(self, **kwargs):  # pragma: no cover
         return kwargs
 
     def get_required_forms(self):

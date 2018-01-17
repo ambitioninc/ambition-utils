@@ -1,7 +1,8 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from ambition_utils.forms import NestedFormMixin
+from ambition_utils.forms import NestedFormMixin, NestedFormMixinBase
 
 
 class NestedForm1(NestedFormMixin, forms.Form):
@@ -138,7 +139,69 @@ class FormWithOptional(NestedFormMixin, forms.Form):
     optional_required = forms.BooleanField(required=False)
 
 
+class NestedFormMixinBaseTest(TestCase):
+
+    def test_get_pre_save_method_kwargs(self):
+        """
+        Checks return value of pre save method
+        """
+        mixin = NestedFormMixinBase()
+
+        self.assertEqual(mixin.get_pre_save_method_kwargs(), {})
+
+    def test_get_post_save_method_kwargs(self):
+        """
+        Checks return value of post save method
+        """
+        mixin = NestedFormMixinBase()
+
+        self.assertEqual(mixin.get_post_save_method_kwargs(one='two'), {'one': 'two'})
+
+    def test_save_form(self):
+        """
+        Checks return value of save form method
+        """
+        mixin = NestedFormMixinBase()
+
+        self.assertEqual(mixin.save_form(), None)
+
+    def test_save(self):
+        """
+        Makes sure parent form save is called
+        """
+        class ParentForm(forms.Form):
+
+            def save(self):
+                return 'saved'
+
+
+        class ChildForm(NestedFormMixinBase, ParentForm):
+            pass
+
+
+        form = ChildForm()
+
+        self.assertEqual(form.save(), 'saved')
+
+
 class NestedFormMixinTest(TestCase):
+
+    def test_field_prefix_validation_error(self):
+        """
+        Makes sure a validation error is raised if two of the same form exist but both don't have a field prefix
+        """
+        class Form1(forms.Form):
+            pass
+
+        class ParentForm1(NestedFormMixin, forms.Form):
+            nested_form_configs = [{
+                'class': Form1,
+            }, {
+                'class': Form1,
+            }]
+
+        with self.assertRaises(ValidationError):
+            ParentForm1()
 
     def test_nested_required_fields(self):
         """
