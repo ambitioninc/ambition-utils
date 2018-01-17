@@ -9,7 +9,6 @@ from mock import patch
 from ambition_utils.rrule.handler import OccurrenceHandler
 
 from ambition_utils.rrule.models import RRule
-from ambition_utils.rrule.tasks import RecurrenceTask
 
 
 class MockHandler(OccurrenceHandler):
