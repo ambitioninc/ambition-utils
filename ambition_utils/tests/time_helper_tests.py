@@ -1,15 +1,11 @@
+import datetime
+
 from django.test import TestCase
 
-from ambition_utils.time_helpers import get_time_zones
+from ambition_utils.time_helpers import get_time_zones, get_gmt_offset
 
 
 class TimeHelperTestCase(TestCase):
-
-    def test_get_gmt_offset(self):
-        """
-
-        """
-        pass
 
     def test_get_time_zones(self):
         """

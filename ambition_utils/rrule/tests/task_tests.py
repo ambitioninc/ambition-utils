@@ -118,3 +118,7 @@ class RecurrenceTaskTest(TestCase):
         self.assertEqual(recurrences[1].next_occurrence, datetime.datetime(2017, 1, 2))
         self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 2))
         self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 2))
+
+        # For coverage, make handler 3 overdue
+        with freeze_time('1-3-2017'):
+            task.run()

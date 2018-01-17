@@ -9,6 +9,7 @@ from mock import patch
 from ambition_utils.rrule.handler import OccurrenceHandler
 
 from ambition_utils.rrule.models import RRule
+from ambition_utils.rrule.tasks import RecurrenceTask
 
 
 class MockHandler(OccurrenceHandler):
@@ -64,6 +65,11 @@ class RRuleTest(TestCase):
         rule.update_next_occurrence()
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 3, 1, 10))
         self.assertEqual(rule.next_occurrence, None)
+
+        # For coverage run the handler
+        with freeze_time('1-3-2017'):
+            task = RecurrenceTask()
+            task.run()
 
     def test_get_next_occurrence_first_is_not_occurrence(self):
         """

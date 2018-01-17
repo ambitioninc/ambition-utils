@@ -5,9 +5,9 @@ from pytz import common_timezones, timezone, exceptions as pytz_exceptions
 def get_gmt_offset(tz_name, now):
     try:
         offset = timezone(tz_name).utcoffset(now)
-    except pytz_exceptions.AmbiguousTimeError:
+    except pytz_exceptions.AmbiguousTimeError:  # pragma: no cover
         offset = timezone(tz_name).utcoffset(now, is_dst=False)
-    except pytz_exceptions.NonExistentTimeError:
+    except pytz_exceptions.NonExistentTimeError:  # pragma: no cover
         offset = timezone(tz_name).utcoffset(now, is_dst=False)
 
     offset = int(offset.total_seconds() / 3600)
