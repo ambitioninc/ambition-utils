@@ -201,10 +201,8 @@ class NestedFormMixinBaseTest(TestCase):
             def save(self):
                 return 'saved'
 
-
         class ChildForm(NestedFormMixinBase, ParentForm1):
             pass
-
 
         form = ChildForm()
 
@@ -216,7 +214,6 @@ class NestedFormMixinBaseTest(TestCase):
         """
         class ParentForm1(NestedFormMixinBase, forms.Form):
             the_key = forms.BooleanField(required=False)
-
 
         # Required in config
         nested_form = {
