@@ -145,6 +145,17 @@ class NestedRecurrenceFormTest(TestCase):
 
         self.assertFalse(form.is_valid())
 
+    def test_clean_byweekday_error(self):
+        """
+        Makes sure invalid json is handled
+        """
+        form = RecurrenceForm(data={
+            # invalid json
+            'bynweekday': '[[[eee'
+        })
+
+        self.assertEqual(form.clean_byweekday(), [])
+
     def test_clear_ends_on_if_not_selected(self):
         """
         This handles a case with the date picker (and won't happen after date picker is fixed, but should still
@@ -227,6 +238,22 @@ class NestedRecurrenceFormTest(TestCase):
             'ends': RecurrenceEnds.ON,
             'until': '7/10/2017',
             'byweekday': '',
+        }
+        form = RecurrenceForm(data=data)
+
+        self.assertFalse(form.is_valid())
+
+    def test_monthly_missing_repeat_by(self):
+        """
+        Should raise a ValidationError because repeat_by is missing for monthly
+        """
+        data = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': '6/4/2017',
+            'byhour': '0',
+            'time_zone': 'UTC',
+            'ends': RecurrenceEnds.NEVER,
         }
         form = RecurrenceForm(data=data)
 
