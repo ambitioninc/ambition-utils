@@ -1,4 +1,4 @@
-from copy import copy, deepcopy
+from copy import deepcopy
 
 from django.core.exceptions import ValidationError
 from django.db.transaction import atomic
