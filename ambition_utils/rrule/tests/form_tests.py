@@ -77,6 +77,23 @@ class NestedRecurrenceFormTest(TestCase):
         self.assertEqual(rule[1], datetime.datetime(2017, 6, 5))
         self.assertEqual(rule[2], datetime.datetime(2017, 6, 9))
 
+    def test_return_if_errors(self):
+        """
+        Returns from the clean method if there are already errors
+        """
+        data = {}
+        form = RecurrenceForm(data=data)
+
+        self.assertFalse(form.is_valid())
+
+        self.assertEqual(form.clean(), {
+            'bynweekday': [],
+            'byweekday': [],
+            'count': None,
+            'repeat_by': '',
+            'until': None,
+        })
+
     def test_missing_after_occurrences_count(self):
         data = {
             'freq': rrule.DAILY,
