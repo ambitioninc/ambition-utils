@@ -169,7 +169,7 @@ class RRule(models.Model):
         :type save: bool
         """
         if not self.next_occurrence:
-            return
+            return None
 
         # Only handle if the current date is >= next occurrence
         if datetime.utcnow() < self.next_occurrence:

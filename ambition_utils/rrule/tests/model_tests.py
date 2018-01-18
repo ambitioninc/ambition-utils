@@ -111,6 +111,40 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 4, 1, 10))
         self.assertEqual(rule.next_occurrence, None)
 
+    def test_get_next_occurrence_force(self):
+        """
+        If there is no next occurrence but we want to know what it would have been
+        """
+
+        # Create the params to create the rule
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+            'count': 1,
+            'bymonthday': 1,
+            'byhour': 10,
+        }
+
+        # Create the rule
+        rule = RRule.objects.create(
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+
+        # Assert the initial values
+        self.assertEqual(rule.last_occurrence, None)
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2017, 2, 1, 10))
+
+        # Handle the next occurrence
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 2, 1, 10))
+        self.assertEqual(rule.next_occurrence, None)
+        self.assertEqual(rule.get_next_occurrence(force=True), datetime.datetime(2017, 3, 1, 10))
+
+        # Coverage for returning early
+        self.assertEqual(rule.update_next_occurrence(), None)
+
     def test_model_default_time_zone(self):
         params = {
             'freq': rrule.DAILY,

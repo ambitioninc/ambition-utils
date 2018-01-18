@@ -205,9 +205,10 @@ class RecurrenceForm(forms.Form):
         rrule_model.time_zone = self.cleaned_data.get('time_zone')
         for key, value in kwargs.items():
             if hasattr(rrule_model, key):
+                # This try except is because some field names might be reverse foreign key relationships
                 try:
                     setattr(rrule_model, key, value)
-                except:
+                except:  # pragma: no cover
                     pass
 
         rrule_model.save()
