@@ -60,6 +60,12 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 3, 1, 10))
         self.assertEqual(rule.next_occurrence, None)
 
+        # For coverage run the handler
+        with freeze_time('1-3-2017'):
+            handler = MockHandler()
+
+            self.assertTrue(handler.handle(None))
+
     def test_get_next_occurrence_first_is_not_occurrence(self):
         """
         First occurrence should be later than the dtstart
