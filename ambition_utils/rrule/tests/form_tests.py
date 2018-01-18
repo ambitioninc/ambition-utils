@@ -151,10 +151,21 @@ class NestedRecurrenceFormTest(TestCase):
         """
         form = RecurrenceForm(data={
             # invalid json
-            'bynweekday': '[[[eee'
+            'byweekday': '[[[eee'
         })
 
         self.assertEqual(form.clean_byweekday(), [])
+
+    def test_clean_bynweekday_error(self):
+        """
+        Makes sure invalid json is handled
+        """
+        form = RecurrenceForm(data={
+            # invalid json
+            'bynweekday': '[[[eee'
+        })
+
+        self.assertEqual(form.clean_bynweekday(), [])
 
     def test_clear_ends_on_if_not_selected(self):
         """
@@ -349,3 +360,26 @@ class NestedRecurrenceFormTest(TestCase):
         self.assertEqual(rule[0], datetime.datetime(2017, 6, 4))
         self.assertEqual(rule[1], datetime.datetime(2018, 6, 4))
         self.assertEqual(rule[2], datetime.datetime(2019, 6, 4))
+
+    def test_kwargs_setting(self):
+        """
+        Verifies that kwargs passed to the save method get set or ignored if they don't exist on the model
+        """
+        data = {
+            'freq': rrule.YEARLY,
+            'interval': 1,
+            'dtstart': '6/4/2017',
+            'byhour': '0',
+            'time_zone': 'UTC',
+            'ends': RecurrenceEnds.NEVER,
+        }
+        form = RecurrenceForm(data=data)
+
+        self.assertTrue(form.is_valid())
+
+        rrule_model = form.save(
+            occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
+            fake_recurrence=form
+        )
+
+        self.assertEqual(rrule_model.occurrence_handler_path, 'ambition_utils.rrule.handler.OccurrenceHandler')

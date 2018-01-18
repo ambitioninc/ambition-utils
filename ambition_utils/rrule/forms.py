@@ -177,8 +177,7 @@ class RecurrenceForm(forms.Form):
             'byhour': self.cleaned_data.get('byhour'),
         }
 
-        if self.cleaned_data.get('interval'):
-            params['interval'] = self.cleaned_data.get('interval')
+        params['interval'] = self.cleaned_data.get('interval', 1)
 
         if self.cleaned_data.get('count'):
             params['count'] = self.cleaned_data.get('count')
@@ -205,8 +204,11 @@ class RecurrenceForm(forms.Form):
         rrule_model.rrule_params = params
         rrule_model.time_zone = self.cleaned_data.get('time_zone')
         for key, value in kwargs.items():
-            if hasattr(rrule, key):
-                setattr(rrule_model, key, value)
+            if hasattr(rrule_model, key):
+                try:
+                    setattr(rrule_model, key, value)
+                except:
+                    pass
 
         rrule_model.save()
 
