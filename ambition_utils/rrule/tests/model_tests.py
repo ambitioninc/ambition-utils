@@ -4,7 +4,6 @@ import pytz
 from dateutil import rrule
 from django.test import TestCase
 from freezegun import freeze_time
-from mock import patch
 
 from ambition_utils.rrule.handler import OccurrenceHandler
 
@@ -21,14 +20,10 @@ class MockHandler(OccurrenceHandler):
 
 class RRuleTest(TestCase):
 
-    @patch('ambition_utils.rrule.tests.model_tests.MockHandler')
-    def test_get_next_occurrence_first_is_occurrence(self, mock_handler):
+    def test_get_next_occurrence_first_is_occurrence(self):
         """
         First occurrence should be the dtstart
         """
-
-        # Setup the mock value
-        mock_handler.handle.return_value = True
 
         # Setup the params for creating the rule
         params = {
@@ -64,12 +59,6 @@ class RRuleTest(TestCase):
         rule.update_next_occurrence()
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 3, 1, 10))
         self.assertEqual(rule.next_occurrence, None)
-
-        # For coverage run the handler
-        with freeze_time('1-3-2017'):
-            handler = MockHandler()
-
-            self.assertTrue(handler.handle(None))
 
     def test_get_next_occurrence_first_is_not_occurrence(self):
         """
@@ -292,6 +281,13 @@ class RRuleTest(TestCase):
         rule.update_next_occurrence()
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 1, 3, 3))
         self.assertEqual(rule.next_occurrence, None)
+
+        # Save again to hit all conditions (resaving when dtstart and until are already strings)
+        rule.save()
+
+        self.assertEqual(rule.rrule_params['dtstart'], '2017-01-01 22:00:00')
+        self.assertEqual(rule.rrule_params['until'], '2017-01-03 21:00:00')
+
 
     def test_model_different_time_zone_daily_with_ending_on_interval(self):
         """
