@@ -208,7 +208,7 @@ class RecurrenceForm(forms.Form):
                 # This try except is because some field names might be reverse foreign key relationships
                 try:
                     setattr(rrule_model, key, value)
-                except:  # pragma: no cover
+                except TypeError:  # pragma: no cover
                     pass
 
         rrule_model.save()

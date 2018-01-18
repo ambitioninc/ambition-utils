@@ -294,7 +294,6 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.rrule_params['dtstart'], '2017-01-01 22:00:00')
         self.assertEqual(rule.rrule_params['until'], '2017-01-03 21:00:00')
 
-
     def test_model_different_time_zone_daily_with_ending_on_interval(self):
         """
         Makes sure the time_zone is respected and ends before the ending time
