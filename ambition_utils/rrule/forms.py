@@ -185,6 +185,9 @@ class RecurrenceForm(forms.Form):
         if self.cleaned_data.get('until'):
             # Convert date to datetime
             until = datetime.combine(self.cleaned_data.get('until'), datetime.min.time())
+
+            # Add hour to until datetime if it exists
+            until = until.replace(hour=params['byhour'])
             params['until'] = until
 
         # Add day choices
