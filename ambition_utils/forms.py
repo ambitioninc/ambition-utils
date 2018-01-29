@@ -6,7 +6,6 @@ from django.forms.utils import ErrorDict
 
 
 class NestedFormMixinBase(object):
-    # nested_form_classes = []
     nested_form_configs = []
 
     def __init__(self, *args, **kwargs):

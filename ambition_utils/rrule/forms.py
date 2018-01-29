@@ -24,6 +24,7 @@ ENDS_CHOICES = (
     (RecurrenceEnds.ON, 'On'),
 )
 
+
 REPEAT_BY_CHOICES = (
     ('DAY_OF_THE_MONTH', 'Day of the month'),
     ('DAY_OF_THE_WEEK_START', 'Day of the week counting from the beginning of the month'),
@@ -38,9 +39,6 @@ class RecurrenceForm(forms.Form):
     Handles submission of data for populating rrule objects. The field names are based on the rrule
     params defined here http://dateutil.readthedocs.io/en/stable/rrule.html
     """
-    # required_field_name = 'recurrence_required'
-    # recurrence_required = forms.BooleanField(required=False)
-    # pre_save_method_names = ['save_recurrence']
 
     # Date from which the recurrence will be started from. This might not always be the first recurrence in the series
     dtstart = forms.DateField(
