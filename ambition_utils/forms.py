@@ -5,7 +5,33 @@ from django.db.transaction import atomic
 from django.forms.utils import ErrorDict
 
 
+class NestedFormConfig(object):
+
+    def __init__(self, cls, key, required=False, field_prefix=None, required_key=None, pre=False, post=False):
+        """
+        Sets all default values
+        """
+        self.cls = cls
+        self.key = key
+        self.required = required
+        self.field_prefix = field_prefix
+        self.required_key = required_key
+        self.pre = pre
+        self.post = post
+        self.instance = None
+
+        assert self.cls
+        assert self.key
+
+    def set_instance(self, *args, **kwargs):
+        self.instance = self.cls(*args, **kwargs)
+
+
 class NestedFormMixinBase(object):
+    """
+    Allows a form to contain multiple and optional nested forms. The form configuration is defined in
+    nested_form_configs and follows the following format
+    """
     nested_form_configs = []
 
     def __init__(self, *args, **kwargs):
@@ -18,18 +44,18 @@ class NestedFormMixinBase(object):
 
         for nested_form_config in self.nested_form_configs:
             form_kwargs = deepcopy(kwargs)
-            prefix = nested_form_config.get('field_prefix')
+            prefix = nested_form_config.field_prefix
 
             # Check if this form class already exists
-            if nested_form_config['class'] in form_prefixes:
+            if nested_form_config.cls in form_prefixes:
                 # Make sure both have a prefix value
-                if not form_prefixes[nested_form_config['class']] or not nested_form_config.get('field_prefix'):
+                if not form_prefixes[nested_form_config.cls] or not nested_form_config.field_prefix:
                     raise ValidationError(
-                        'Form {0} must have a field prefix'.format(nested_form_config['class'].__name__)
+                        'Form {0} must have a field prefix'.format(nested_form_config.cls.__name__)
                     )
 
             # Set the prefix value to the form config prefix
-            form_prefixes[nested_form_config['class']] = nested_form_config.get('field_prefix')
+            form_prefixes[nested_form_config.cls] = nested_form_config.field_prefix
 
             if form_kwargs.get('data') and prefix:
                 for prefixed_key, value in form_kwargs['data'].items():
@@ -39,10 +65,8 @@ class NestedFormMixinBase(object):
                         form_kwargs['data'][key] = value
                         form_kwargs['data'].pop(prefixed_key)
 
-            self.nested_forms.append({
-                'instance': nested_form_config['class'](*args, **form_kwargs),
-                'config': nested_form_config
-            })
+            nested_form_config.set_instance(*args, **form_kwargs)
+            self.nested_forms.append(nested_form_config)
 
     def get_pre_save_method_kwargs(self):  # pragma: no cover
         return {}
@@ -61,11 +85,11 @@ class NestedFormMixinBase(object):
         return None
 
     def form_is_required(self, nested_form):
-        if nested_form['config'].get('required'):
+        if nested_form.required:
             return True
 
         # Get the required flag value
-        return self.cleaned_data.get(nested_form['config'].get('required_key'))
+        return self.cleaned_data.get(nested_form.required_key)
 
     def full_clean(self):
         """
@@ -89,7 +113,7 @@ class NestedFormMixinBase(object):
         # This is the additional code that updates the form's errors with the nested form's errors
         required_forms = self.get_required_forms()
         for form in required_forms:
-            self._errors.update(form['instance'].errors)
+            self._errors.update(form.instance.errors)
 
 
 class NestedFormMixin(NestedFormMixinBase):
@@ -100,15 +124,15 @@ class NestedFormMixin(NestedFormMixinBase):
         required_forms = self.get_required_forms()
 
         for form in required_forms:
-            if form['config'].get('pre'):
-                form_kwargs[form['config']['key']] = form['instance'].save(**form_kwargs)
+            if form.pre:
+                form_kwargs[form.key] = form.instance.save(**form_kwargs)
 
         form_kwargs['form_save'] = self.save_form(**form_kwargs)
         form_kwargs = self.get_post_save_method_kwargs(**form_kwargs)
 
         for form in required_forms:
-            if form['config'].get('post'):
-                form_kwargs[form['config']['key']] = form['instance'].save(**form_kwargs)
+            if form.post:
+                form_kwargs[form.key] = form.instance.save(**form_kwargs)
 
         return form_kwargs['form_save']
 
@@ -122,14 +146,14 @@ class NestedModelFormMixin(NestedFormMixinBase):
         required_forms = self.get_required_forms()
 
         for form in required_forms:
-            if form['config'].get('pre'):
-                form_kwargs[form['config']['key']] = form['instance'].save(**form_kwargs)
+            if form.pre:
+                form_kwargs[form.key] = form.instance.save(**form_kwargs)
 
         form_kwargs['instance'] = super(NestedModelFormMixin, self).save(commit=commit)
         form_kwargs = self.get_post_save_method_kwargs(**form_kwargs)
 
         for form in required_forms:
-            if form['config'].get('post'):
-                form_kwargs[form['config']['key']] = form['instance'].save(**form_kwargs)
+            if form.post:
+                form_kwargs[form.key] = form.instance.save(**form_kwargs)
 
         return form_kwargs['instance']

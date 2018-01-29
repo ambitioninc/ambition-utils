@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from ambition_utils.forms import NestedFormMixin, NestedFormMixinBase, NestedModelFormMixin
+from ambition_utils.forms import NestedFormMixin, NestedFormMixinBase, NestedModelFormMixin, NestedFormConfig
 from ambition_utils.tests.models import FakeModel
 
 
@@ -37,33 +37,38 @@ class OptionalForm(NestedFormMixin, forms.Form):
 
 
 class ParentForm(NestedFormMixin, forms.Form):
-    nested_form_configs = [{
-        'class': NestedForm1,
-        'key': 'nested_form_1',
-        'required': False,
-        'required_key': 'nested_form_1_required',
-        'pre': True,
-    }, {
-        'class': NestedForm2,
-        'key': 'nested_form_2',
-        'required': False,
-        'required_key': 'nested_form_2_required',
-        'pre': True,
-    }, {
-        'class': OptionalForm,
-        'key': 'optional',
-        'required': False,
-        'field_prefix': 'optional_1',
-        'required_key': 'optional_required',
-        'pre': True,
-    }, {
-        'class': OptionalForm,
-        'key': 'optional_2',
-        'field_prefix': 'optional_2',
-        'required_key': 'optional_required_2',
-        'required': False,
-        'post': True,
-    }]
+    nested_form_configs = [
+        NestedFormConfig(
+            cls=NestedForm1,
+            key='nested_form_1',
+            required=False,
+            required_key='nested_form_1_required',
+            pre=True,
+        ),
+        NestedFormConfig(
+            cls=NestedForm2,
+            key='nested_form_2',
+            required=False,
+            required_key='nested_form_2_required',
+            pre=True,
+        ),
+        NestedFormConfig(
+            cls=OptionalForm,
+            key='optional',
+            required=False,
+            field_prefix='optional_1',
+            required_key='optional_required',
+            pre=True,
+        ),
+        NestedFormConfig(
+            cls=OptionalForm,
+            key='optional_2',
+            required=False,
+            field_prefix='optional_2',
+            required_key='optional_required_2',
+            post=True,
+        )
+    ]
 
     one = forms.CharField(error_messages={
         'required': 'One is required'
@@ -87,22 +92,26 @@ class ParentForm(NestedFormMixin, forms.Form):
 
 
 class FormWithAlwaysRequired(NestedFormMixin, forms.Form):
-    nested_form_configs = [{
-        'class': NestedForm1,
-        'key': 'nested_form_1',
-        'required': True,
-        'pre': True,
-    }, {
-        'class': NestedForm2,
-        'key': 'nested_form_2',
-        'required': True,
-        'pre': True,
-    }, {
-        'class': OptionalForm,
-        'key': 'optional',
-        'required': True,
-        'pre': True,
-    }]
+    nested_form_configs = [
+        NestedFormConfig(
+            cls=NestedForm1,
+            key='nested_form_1',
+            required=True,
+            pre=True
+        ),
+        NestedFormConfig(
+            cls=NestedForm2,
+            key='nested_form_2',
+            required=True,
+            pre=True
+        ),
+        NestedFormConfig(
+            cls=OptionalForm,
+            key='optional',
+            required=True,
+            pre=True
+        )
+    ]
 
     one = forms.CharField(error_messages={
         'required': 'One is required'
@@ -116,19 +125,22 @@ class FormWithAlwaysRequired(NestedFormMixin, forms.Form):
 
 
 class FormWithOptional(NestedFormMixin, forms.Form):
-    nested_form_configs = [{
-        'class': NestedForm1,
-        'key': 'nested_form_1',
-        'required': False,
-        'required_key': 'nested_form_1_required',
-        'pre': True,
-    }, {
-        'class': OptionalForm,
-        'key': 'optional',
-        'required': False,
-        'required_key': 'optional_required',
-        'pre': True,
-    }]
+    nested_form_configs = [
+        NestedFormConfig(
+            cls=NestedForm1,
+            key='nested_form_1',
+            required=False,
+            required_key='nested_form_1_required',
+            pre=True
+        ),
+        NestedFormConfig(
+            cls=OptionalForm,
+            key='optional',
+            required=False,
+            required_key='optional_required',
+            pre=True
+        )
+    ]
 
     one = forms.CharField(error_messages={
         'required': 'One is required'
@@ -146,21 +158,24 @@ class ModelFormWithNestedForms(NestedModelFormMixin, forms.ModelForm):
         model = FakeModel
         fields = ['name']
 
-    nested_form_configs = [{
-        'class': OptionalForm,
-        'key': 'optional',
-        'required': False,
-        'field_prefix': 'optional_1',
-        'required_key': 'optional_required',
-        'pre': True,
-    }, {
-        'class': OptionalForm,
-        'key': 'optional_2',
-        'field_prefix': 'optional_2',
-        'required_key': 'optional_required_2',
-        'required': False,
-        'post': True,
-    }]
+    nested_form_configs = [
+        NestedFormConfig(
+            cls=OptionalForm,
+            key='optional',
+            required=False,
+            field_prefix='optional_1',
+            required_key='optional_required',
+            pre=True
+        ),
+        NestedFormConfig(
+            cls=OptionalForm,
+            key='optional_2',
+            required=False,
+            field_prefix='optional_2',
+            required_key='optional_required_2',
+            post=True
+        )
+    ]
 
     optional_required = forms.BooleanField(required=False)
     optional_required_2 = forms.BooleanField(required=False)
@@ -216,22 +231,22 @@ class NestedFormMixinBaseTest(TestCase):
             the_key = forms.BooleanField(required=False)
 
         # Required in config
-        nested_form = {
-            'config': {
-                'required': True
-            }
-        }
+        nested_form = NestedFormConfig(
+            cls=ParentForm1,
+            key='one',
+            required=True
+        )
         form = ParentForm1(data={})
         self.assertTrue(form.is_valid())
 
         self.assertTrue(form.form_is_required(nested_form))
 
         # Required from flag
-        nested_form = {
-            'config': {
-                'required_key': 'the_key'
-            }
-        }
+        nested_form = nested_form = NestedFormConfig(
+            cls=ParentForm1,
+            key='one',
+            required_key='the_key'
+        )
         form = ParentForm1(data={
             'the_key': '1'
         })
@@ -240,11 +255,11 @@ class NestedFormMixinBaseTest(TestCase):
         self.assertTrue(form.form_is_required(nested_form))
 
         # Not required from flag
-        nested_form = {
-            'config': {
-                'required_key': 'the_key'
-            }
-        }
+        nested_form = NestedFormConfig(
+            cls=ParentForm1,
+            key='one',
+            required_key='the_key'
+        )
         form = ParentForm1(data={})
         self.assertTrue(form.is_valid())
 
@@ -261,11 +276,10 @@ class NestedFormMixinTest(TestCase):
             pass
 
         class ParentForm1(NestedFormMixin, forms.Form):
-            nested_form_configs = [{
-                'class': Form1,
-            }, {
-                'class': Form1,
-            }]
+            nested_form_configs = [
+                NestedFormConfig(cls=Form1, key='one'),
+                NestedFormConfig(cls=Form1, key='two')
+            ]
 
         with self.assertRaises(ValidationError):
             ParentForm1()
