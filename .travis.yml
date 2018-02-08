@@ -1,0 +1,23 @@
+sudo: true
+language: python
+python:
+  - '3.5'
+  - '3.6'
+env:
+  global:
+    - DB=postgres
+  matrix:
+    - DJANGO=">=1.11,<2.0"
+    - DJANGO=">=2.0,<2.1"
+addons:
+  postgresql: '9.5'
+install:
+  - pip install -q coverage coveralls flake8 Django$DJANGO django-nose>=1.4
+before_script:
+  - psql -c 'CREATE DATABASE ambition_utils;' -U postgres
+script:
+  - flake8 ./ambition_utils
+  - coverage run setup.py test
+  - coverage report --fail-under=100
+after_success:
+  coveralls
