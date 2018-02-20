@@ -27,13 +27,16 @@ class RRuleManager(models.Manager):
         """
         Handles any overdue rrules
         """
+        print('handle overdue')
 
         # Get instances of all overdue recurrence handler classes
         instances = self.overdue_handler_class_instances(**filters)
+        print(instances)
 
         # Build a list of rrules that get returned from the handler
         rrules = []
         for instance in instances:
+            print(instance)
             rrules.extend(instance.handle())
 
         # Bulk update the next occurrences
