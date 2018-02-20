@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+0.1.2
+-----
+* Do not modify the same dict while iterating
+
 0.1.1
 -----
 * Use form config class to more easily control and document arguments

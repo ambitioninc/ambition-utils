@@ -82,7 +82,7 @@ class NestedFormMixinBase(object):
 
             # Process the form field keys when there is a prefix defined on the nested form
             if form_kwargs.get('data') and prefix:
-                for prefixed_key, value in form_kwargs['data'].items():
+                for prefixed_key, value in deepcopy(form_kwargs['data']).items():
                     # Check if the prefix is there to replace
                     to_replace = '{0}_'.format(prefix)
                     if prefixed_key.startswith(to_replace):
