@@ -44,6 +44,7 @@ def configure_settings():
                 'ambition_utils',
                 'ambition_utils.tests',
                 'ambition_utils.activity',
+                'ambition_utils.anomaly',
                 'ambition_utils.rrule',
             ),
             ROOT_URLCONF='ambition_utils.urls',
