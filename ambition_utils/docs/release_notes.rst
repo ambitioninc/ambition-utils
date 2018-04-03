@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+0.2.0
+-----
+* Added mixin for tasks to add progress tracking
+
 0.1.2
 -----
 * Do not modify the same dict while iterating
