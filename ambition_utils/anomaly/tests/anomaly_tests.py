@@ -5,8 +5,8 @@ from django.test import TestCase
 from django.db import IntegrityError
 from freezegun import freeze_time
 
-from ambition_utils.tests.models import IncrementalAnomaly, NonIncrementalAnomaly, FloatModel
-from ambition_utils.models import BadAnomalyType, BadPercentileValue
+from ambition_utils.anomaly.tests.models import IncrementalAnomaly, NonIncrementalAnomaly, FloatModel
+from ambition_utils.anomaly.models import BadAnomalyType, BadPercentileValue
 
 
 class NonIncrementalAnomalyTest(TestCase):
