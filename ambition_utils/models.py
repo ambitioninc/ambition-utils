@@ -1,4 +1,5 @@
 import datetime
+import sys
 
 
 from django.db import models
@@ -9,10 +10,7 @@ from tdigest import TDigest
 
 from manager_utils import ManagerUtilsManager, ManagerUtilsQuerySet
 
-ROLLING_DAYS_DEFAULT = 90
 
-# from entity.models import Entity
-# from ambition.bridges.entity_bridge.constants import ACCOUNT_KIND_NAME
 
 class BadPercentileValue(Exception):
     pass
@@ -28,12 +26,15 @@ class AnomalyBaseQueryset(ManagerUtilsQuerySet):
             assume_now = datetime.datetime.utcnow()
         today = fleming.floor(assume_now, day=1)
 
-        return self.filter(last_updated__lt=today)
+        return self.filter(last_modified__lt=today)
 
 
 class AnomalyBaseManager(ManagerUtilsManager):
     def get_queryset(self):
         return AnomalyBaseQueryset(self.model)
+
+    def unprocessed(self, assume_now=None):
+        return self.get_queryset().unprocessed(assume_now=assume_now)
 
 
 class AnomalyBase(models.Model):
@@ -47,24 +48,30 @@ class AnomalyBase(models.Model):
 
     You must define a get_uid() method on your class to populate the uid field.
     """
+    # set whether or not this detector will use the blob to do incremental updates
+    # When inheriting from this class, you must specify whether or not this detector will be incremental.
+    # Incremental detectors use the tdigest blob.  Non-incremental detectors rely on outside code for updates
+    # (for example, direct sql computation)
+    IS_INCREMENTAL = True
+    PERCENTILE_LOW_DEFAULT = 5
+    PERCENTILE_HIGH_DEFAULT = 95
+
     class Meta:
         abstract = True
 
     # unique id to identify this anomaly detector
     uid = models.CharField(max_length=256, unique=True)
 
-    # set whether or not this detector will use the blob to do incremental updates
-    is_incremental = models.BooleanField(default=True)
 
     # JSON blob to persist the state of the tdigest
     blob = JSONField(default=dict)
 
     # User defined percentiles below and above which an anomaly will happen
-    percentile_low = models.FloatField(default=5)
-    percentile_high = models.FloatField(default=95)
+    percentile_low = models.FloatField(null=True)
+    percentile_high = models.FloatField(null=True)
 
     # These configure the accuracy/space tradeoff for the t-digest state
-    delta = models.FloatField(default=5)
+    delta = models.FloatField(default=.01)
     K = models.FloatField(default=25)
 
     # These are auto-populated and should not be altered by the user
@@ -81,7 +88,7 @@ class AnomalyBase(models.Model):
     # keeps track of the last time updated
     last_modified = models.DateTimeField(db_index=True)
 
-    objects = ManagerUtilsManager()
+    objects = AnomalyBaseManager()
 
     def compute_uid(self):
         """
@@ -91,13 +98,13 @@ class AnomalyBase(models.Model):
 
     @property
     def count(self):
-        if self.is_incremental:
-            self.num_values_ingested = self.digest.N
+        if self.IS_INCREMENTAL:
+            self.num_values_ingested = self.digest.n
         return self.num_values_ingested
 
     @count.setter
     def count(self, new_count):
-        if self.is_incremental:
+        if self.IS_INCREMENTAL:
             raise ValueError('Can\'t set count on an incrmental anomaly detector')
         else:
             self.num_values_ingested = new_count
@@ -109,41 +116,50 @@ class AnomalyBase(models.Model):
         This property pulls from the database to populate a tdigest instance
         """
         dig = TDigest(self.delta, self.K)
-        dig.update_from_dict(self.blob)
+        if self.blob:
+            dig.update_from_dict(self.blob)
         return dig
 
-    def set_thresholds(self, lower, uppper):
-        """
-        Method to manually set lower and upper thresholds.  This should only be used for
-        non-incremental detectors.
+    @property
+    def min_num_points_high(self):
+        if self.percentile_high is None:
+            return sys.maxint
+        return 100. / (100. - self.percentile_high)
 
-        :param lower: value below which anomalies will be detected
-        :param uppper:  upper value abo e which anomalies will be detected
-        :return:
-        """
-        if self.is_incremental:
-            raise BadAnomalyType('set_thresholds() can not be called on incremental detector')
+    @property
+    def min_num_points_low(self):
+        if self.percentile_low is None:
+            return sys.maxint
+        return 100. / self.percentile_low
 
-    def update(self, data, reset_thesholds=False):
+    def update(self, data, reset_threshold=False):
+        """
+        This method can be overwritten.  It defaults to updating the tdigest.  If you overwrite
+        this method, it is your responsibility to update the num_values_ingested field with
+        the number of points you are using in the update.
+        """
+        return self._update_digest(data, reset_threshold)
+
+    def _update_digest(self, data, reset_thresholds):
         """
         Call this method with data observations.  These updates are incorporated into internal
         state that will be able to efficiently detect future abnormal values.
 
         :param data: either a number or an iterable of numbers
-        :param reset_thesholds: Setting to True will force the thresholds to update.  This is a
+        :param reset_thresholds: Setting to True will force the thresholds to update.  This is a
                                 pretty big efficiency hit, but you may want to update and check
                                 data without hitting the database.  This lets you do that.
         """
-        if not self.is_incremental:
-            raise BadAnomalyType('update() can only be called for incremental anomoly detector')
+        if not self.IS_INCREMENTAL:
+            raise BadAnomalyType('update() can only be called for incremental anomaly detector')
 
         if hasattr(data, '__iter__'):
             self.digest.batch_update(data)
         else:
             self.digest.update(data)
 
-        if reset_thesholds:
-            self._set_thesholds()
+        if reset_thresholds:
+            self._set_thresholds_from_tdigest()
 
     def _check_point(self, val):
         """
@@ -152,11 +168,14 @@ class AnomalyBase(models.Model):
         :return: -1: low_anomaly,  0: no_anomaly, 1: high_anomaly
         """
         anomaly = 0
-        if self.threshold_low is not None and val < self.threshold_low:
+        if self.count > self.min_num_points_low and self.threshold_low is not None and val < self.threshold_low:
             anomaly = -1
-        elif self.threshold_high is not None and val > self.threshold_high:
+
+        if self.count > self.min_num_points_high and self.threshold_high is not None and val > self.threshold_high:
             anomaly = 1
+        # print '--- {} {} {} {} {} ---'.format(anomaly, val, self.count, self.threshold_low, self.threshold_high)
         return anomaly
+
 
     def check(self, data):
         """
@@ -181,32 +200,30 @@ class AnomalyBase(models.Model):
         """
         Raises an error if percentile settings look hokey
         """
+        # set undefined percentiles to default values
+        if self.percentile_low is None:
+            self.percentile_low = self.PERCENTILE_LOW_DEFAULT
+        if self.percentile_high is None:
+            self.percentile_high = self.PERCENTILE_HIGH_DEFAULT
+
+        # make sure percentiles look right
         if not 0. < self.percentile_low < 50.:
             raise BadPercentileValue('(0. < low_percentile < 50) is False')
-        if not 50. <= self.percentile_low < 100.:
+        if not 50. <= self.percentile_high < 100.:
             raise BadPercentileValue('(50. < high_percentile < 100) is False')
 
-    def _set_thresholds(self):
+    def _set_thresholds_from_tdigest(self):
         """
         Automatically sets thresholds based on desired percentiles and values
         already seen.
         """
-        # calculate the number of points that must have been seen in order to
-        # generate anomalies.
-        min_num_points_high = 100. / (100. - self.percentile_high)
-        min_num_points_low = 100. / self.percentile_low
-
         # set the high threshold if enough points have been seen
-        if self.digest.n > min_num_points_high:
+        if self.count > 0:
             self.threshold_high = self.digest.percentile(self.percentile_high)
-        else:
-            self.threshold_high = None
 
         # set the low threshold if enough points have been seen
-        if self.digest.n > min_num_points_low:
+        if self.count > 0:
             self.threshold_low = self.digest.percentile(self.percentile_low)
-        else:
-            self.threshold_low = None
 
     def _set_last_modified(self):
         self.last_modified = datetime.datetime.utcnow()
@@ -220,14 +237,15 @@ class AnomalyBase(models.Model):
         self._set_last_modified()
 
         # make sure uid is set
-        if self.uid is None:
+        if not self.uid:
             self.uid = self.compute_uid()
 
         # make sure the percentiles are in range
         self._check_percentiles()
 
-        # if there are enough points, set the thresholds properly
-        self._set_thresholds()
+        # if there are enough points, set the thresholds properly for incremental detector
+        if self.IS_INCREMENTAL:
+            self._set_thresholds_from_tdigest()
 
         # serialize the digest to the blob
         self.blob = self.digest.to_dict()
@@ -241,26 +259,3 @@ class AnomalyBase(models.Model):
         """
         self.pre_save_hooks()
         super(AnomalyBase, self).save(*args, **kwargs)
-
-
-class MetricAnomaly(AnomalyBase):
-    entity = models.ForeignKey('entity.models.Entity')
-    metric_config = models.ForeignKey('animal.models.MetricConfig')
-    rolling_days = models.IntegerField(null=True)
-
-    def compute_uid(self):
-        return '{}_{}_{}'.format(self.entity_id, self.metric_config_id, self.rolling_days)
-
-    def _set_rolling_days(self):
-        if self.rolling_days is None:
-            self.rolling_days = ROLLING_DAYS_DEFAULT
-
-    def pre_save_hooks(self):
-        self._set_rolling_days()
-        super(MetricAnomaly, self).pre_save_hooks()
-
-    def update(self):
-        """
-        Write sql here to update thresholds
-        :return:
-        """

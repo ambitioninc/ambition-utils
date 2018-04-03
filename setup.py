@@ -36,6 +36,7 @@ tests_require = [
     'freezegun',
     'mock',
     'psycopg2',
+    'coverage',
 ]
 
 
