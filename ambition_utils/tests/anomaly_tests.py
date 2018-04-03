@@ -9,7 +9,6 @@ from ambition_utils.tests.models import IncrementalAnomaly, NonIncrementalAnomal
 from ambition_utils.models import BadAnomalyType, BadPercentileValue
 
 
-
 class NonIncrementalAnomalyTest(TestCase):
     def setUp(self):
 
@@ -57,6 +56,7 @@ class IncrementalAnomalyTest(TestCase):
         self.assertEqual(lows, {1, 2, 3, 4, 5})
         self.assertEqual(highs, {96, 97, 98, 99, 100})
 
+
 class IncrementalLimitedRangeTest(TestCase):
     def setUp(self):
 
@@ -95,7 +95,7 @@ class IncrementalRareEventTest(TestCase):
         # detector.update(values)
         detector.save()
         anomalies = [detector.check(v) for v in values]
-        outliers = [t[0] for t in zip(values, anomalies) if t[1] !=0]
+        outliers = [t[0] for t in zip(values, anomalies) if t[1] != 0]
         self.assertEqual(outliers, [5, 5, 5])
 
 
@@ -120,7 +120,8 @@ class UnprocessedAnomalyTests(TestCase):
         self.assertEqual(
             {
                 d.uid for d in IncrementalAnomaly.objects.unprocessed(
-                assume_now=datetime.datetime.utcnow() + datetime.timedelta(days=2))
+                    assume_now=datetime.datetime.utcnow() + datetime.timedelta(days=2)
+                )
             },
             {'a0', 'a1', 'a2', 'a3', 'a4'}
         )
@@ -156,7 +157,6 @@ class AnomalyUnitTests(TestCase):
         with self.assertRaises(BadAnomalyType):
             detector.update(7)
 
-
     def test_bad_percentiels(self):
         detector = IncrementalAnomaly(
             name='non_incremental',
@@ -166,7 +166,6 @@ class AnomalyUnitTests(TestCase):
         with self.assertRaises(BadPercentileValue):
             detector.save()
 
-
         detector = IncrementalAnomaly(
             name='non_incremental',
             percentile_high=90,
@@ -174,21 +173,3 @@ class AnomalyUnitTests(TestCase):
         )
         with self.assertRaises(BadPercentileValue):
             detector.save()
-
-
-    # def test_make_uid(self):
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

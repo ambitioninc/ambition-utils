@@ -11,7 +11,6 @@ from tdigest import TDigest
 from manager_utils import ManagerUtilsManager, ManagerUtilsQuerySet
 
 
-
 class BadPercentileValue(Exception):
     pass
 
@@ -62,7 +61,6 @@ class AnomalyBase(models.Model):
     # unique id to identify this anomaly detector
     uid = models.CharField(max_length=256, unique=True)
 
-
     # JSON blob to persist the state of the tdigest
     blob = JSONField(default=dict)
 
@@ -108,7 +106,6 @@ class AnomalyBase(models.Model):
             raise ValueError('Can\'t set count on an incrmental anomaly detector')
         else:
             self.num_values_ingested = new_count
-
 
     @cached_property
     def digest(self):
@@ -175,7 +172,6 @@ class AnomalyBase(models.Model):
             anomaly = 1
         # print '--- {} {} {} {} {} ---'.format(anomaly, val, self.count, self.threshold_low, self.threshold_high)
         return anomaly
-
 
     def check(self, data):
         """

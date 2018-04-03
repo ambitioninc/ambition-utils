@@ -18,6 +18,7 @@ class IncrementalAnomaly(AnomalyBase):
     def compute_uid(self):
         return self.name
 
+
 class NonIncrementalAnomaly(AnomalyBase):
     IS_INCREMENTAL = False
     name = models.CharField(max_length=100)
@@ -36,4 +37,3 @@ class NonIncrementalAnomaly(AnomalyBase):
         self.num_values_ingested += len(values)
 
         self.save()
-
