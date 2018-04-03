@@ -43,6 +43,7 @@ def configure_settings():
                 'django.contrib.contenttypes',
                 'ambition_utils',
                 'ambition_utils.tests',
+                'ambition_utils.activity',
                 'ambition_utils.rrule',
             ),
             ROOT_URLCONF='ambition_utils.urls',
