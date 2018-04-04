@@ -18,6 +18,7 @@ class TimeHelperTestCase(TestCase):
         self.assertEqual(time_zones[0]['name'], 'US/Eastern (EST) (GMT -5)')
         self.assertTrue(len(time_zones) > 400)
 
+    @freeze_time('1-1-2017')
     def test_get_time_zones_as_tuple(self):
         """
         Makes sure the time zones are returned as tuples and that eastern is first
