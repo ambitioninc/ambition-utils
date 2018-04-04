@@ -29,6 +29,7 @@ setup(
     packages=find_packages(),
     classifiers=[
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Intended Audience :: Developers',
@@ -48,11 +49,11 @@ setup(
         'pytz>=2015.6',
         'six',
         'celery',
+        'enum34>=1.0.4'
     ],
     tests_require=[
         'django-nose>=1.4',
         'django-dynamic-fixture',
-        'jsonfield==0.9.23',
         'freezegun',
         'mock',
         'psycopg2',

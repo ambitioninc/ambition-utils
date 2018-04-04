@@ -19,7 +19,7 @@ def decorate_activity(fn, activity):
             activity.success()
             return ret_val
         except Exception as e:
-            activity.failure(e.message)
+            activity.failure(str(e))
             reraise(*exc_info())
     return decorator
 

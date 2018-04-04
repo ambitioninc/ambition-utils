@@ -78,7 +78,7 @@ class Activity(models.Model):
     time_created = models.DateTimeField(auto_now_add=True, db_index=True)
     time_updated = models.DateTimeField(auto_now=True, db_index=True)
     time_finished = models.DateTimeField(null=True, db_index=True)
-    group = models.ForeignKey(ActivityGroup, null=True, related_name='activities')
+    group = models.ForeignKey(ActivityGroup, null=True, related_name='activities', on_delete=models.CASCADE)
     status = models.CharField(
         max_length=255,
         default=ActivityStatus.PENDING.value,
