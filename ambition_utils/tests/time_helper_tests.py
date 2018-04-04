@@ -1,10 +1,12 @@
 from django.test import TestCase
+from freezegun import freeze_time
 
 from ambition_utils.time_helpers import get_time_zones
 
 
 class TimeHelperTestCase(TestCase):
 
+    @freeze_time('1-1-2017')
     def test_get_time_zones(self):
         """
         Makes sure the time zones are returned as dicts and that eastern is first
