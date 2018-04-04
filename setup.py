@@ -48,6 +48,7 @@ setup(
         'pytz>=2015.6',
         'six',
         'celery',
+        'enum34>=1.0.4'
     ],
     tests_require=[
         'django-nose>=1.4',
