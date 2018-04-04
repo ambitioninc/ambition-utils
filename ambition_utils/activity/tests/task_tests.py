@@ -73,6 +73,6 @@ class ActivityManagedTaskMixinTest(TestCase):
     def test_activity_group_name(self):
         self.assertEqual(
             ActivityManagedTaskMixin().activity_group_name,
-            'ambition_utils.activity.ActivityManagedTaskMixin'
+            'ActivityManagedTaskMixin'
         )
         self.assertEqual(ActivityManagedTaskMixin(_activity_group_name='test name').activity_group_name, 'test_name')
