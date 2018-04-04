@@ -79,7 +79,3 @@ class ActivityManagedTaskMixinTest(TestCase):
         mixin._activity_group_name = 'test name'
 
         self.assertEqual(mixin.activity_group_name, 'test name')
-
-
-        # Just making sure flake is working on travis Just making sure flake is working on travis Just making sure flake is working on travis Just making sure flake is working on travis
-        self.assertEqual(mixin.activity_group_name, 'test name')
