@@ -55,9 +55,7 @@ class ActivityGroup(models.Model):
     def __str__(self):
         return self.name
 
-    def finish(self, status=None):
-        if status is None:
-            status = ActivityGroupStatus.SUCCESS.value
+    def finish(self, status=ActivityGroupStatus.SUCCESS.value):
         self.status = status
         self.time_finished = datetime.utcnow()
         self.save()
@@ -89,9 +87,7 @@ class Activity(models.Model):
     )
     error_message = models.TextField(blank=True, null=True)
 
-    def finish(self, status=None):
-        if status is None:
-            status = ActivityStatus.SUCCESS.value
+    def finish(self, status=ActivityStatus.SUCCESS.value):
         self.status = status
         self.time_finished = datetime.utcnow()
         self.save()

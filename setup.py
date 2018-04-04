@@ -54,7 +54,6 @@ setup(
     tests_require=[
         'django-nose>=1.4',
         'django-dynamic-fixture',
-        'jsonfield==0.9.23',
         'freezegun',
         'mock',
         'psycopg2',
