@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+0.3.0
+-----
+* Use tox to test more versions
+
 0.2.0
 -----
 * Added mixin for tasks to add progress tracking
