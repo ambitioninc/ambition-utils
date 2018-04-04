@@ -52,8 +52,6 @@ class ActivityManagedTaskMixinTest(TestCase):
         self.assertEqual(ActivityGroupStatus.SUCCESS.value, activity_group.status)
         self.assertEqual('TestTask', activity_group.name)
 
-
-
     @patch.object(TestTask, 'second')
     def test_failed_activity(self, mock_second_activity):
         # make the second activity fail
@@ -71,3 +69,10 @@ class ActivityManagedTaskMixinTest(TestCase):
         # ensure that the group is marked as successful
         self.assertEqual(ActivityGroupStatus.FAILURE.value, activity_group.status)
         self.assertEqual('wat', activity_group.error_message)
+
+    def test_activity_group_name(self):
+        self.assertEqual(
+            ActivityManagedTaskMixin().activity_group_name,
+            'ambition_utils.activity.ActivityManagedTaskMixin'
+        )
+        self.assertEqual(ActivityManagedTaskMixin(_activity_group_name='test name').activity_group_name, 'test_name')
