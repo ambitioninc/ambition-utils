@@ -23,7 +23,7 @@ class NonIncrementalAnomalyTest(TestCase):
         detector.update()
 
         values = sorted(FloatModel.objects.all().values_list('value', flat=True))
-        outliers = detector.check(values)
+        outliers = detector.detect(values)
 
         lows = {t[0] for t in zip(values, outliers) if t[1] == -1}
         highs = {t[0] for t in zip(values, outliers) if t[1] == 1}
@@ -48,7 +48,7 @@ class IncrementalAnomalyTest(TestCase):
         detector.update(values)
         detector.save()
 
-        outliers = detector.check(values)
+        outliers = detector.detect(values)
 
         lows = {t[0] for t in zip(values, outliers) if t[1] == -1}
         highs = {t[0] for t in zip(values, outliers) if t[1] == 1}
@@ -71,7 +71,7 @@ class IncrementalLimitedRangeTest(TestCase):
         detector.update(values)
         detector.save()
 
-        self.assertEqual(detector.check(list(range(-1, 6))), [-1, 0, 0, 0, 0, 1, 1])
+        self.assertEqual(detector.detect(list(range(-1, 6))), [-1, 0, 0, 0, 0, 1, 1])
 
 
 class IncrementalRareEventTest(TestCase):
@@ -94,7 +94,7 @@ class IncrementalRareEventTest(TestCase):
             detector.update(v, reset_threshold=True)
         # detector.update(values)
         detector.save()
-        anomalies = [detector.check(v) for v in values]
+        anomalies = [detector.detect(v) for v in values]
         outliers = [t[0] for t in zip(values, anomalies) if t[1] != 0]
         self.assertEqual(outliers, [5, 5, 5])
 

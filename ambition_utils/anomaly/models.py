@@ -158,7 +158,7 @@ class AnomalyBase(models.Model):
         if reset_thresholds:
             self._set_thresholds_from_tdigest()
 
-    def _check_point(self, val):
+    def _detect_point(self, val):
         """
         compares a single number with thresholds to determine if it is an anomaly
         :param val:  a number.
@@ -173,7 +173,7 @@ class AnomalyBase(models.Model):
         # print '--- {} {} {} {} {} ---'.format(anomaly, val, self.count, self.threshold_low, self.threshold_high)
         return anomaly
 
-    def check(self, data):
+    def detect(self, data):
         """
         Checks whether data is an anomaly
         :param data: either a number or an iterable of numbers
@@ -185,7 +185,7 @@ class AnomalyBase(models.Model):
         if not hasattr(data, '__iter__'):
             data = [data]
 
-        out = [self._check_point(val) for val in data]
+        out = [self._detect_point(val) for val in data]
 
         if len(out) == 1:
             return out[0]
