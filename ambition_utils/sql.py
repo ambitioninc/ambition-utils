@@ -47,15 +47,16 @@ class SimpleSQL(object):
 
     def _run(self):
         with self._connection.cursor() as cursor:
-            cursor.execute(self.template, self.kwargs)
+            cursor.execute(self.template, self._params)
             self._raw_results = list(cursor.fetchall())
             self._raw_columns = [col[0] for col in cursor.description]
 
     @property
-    def connection(self):
+    def _connection(self):
         if self._raw_connection is None:
             from django.db import connection
             self._raw_connection = connection
+        return self._raw_connection
 
     @property
     def _results(self):
