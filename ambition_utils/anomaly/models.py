@@ -62,15 +62,15 @@ class AnomalyBase(models.Model):
     uid = models.CharField(max_length=256, unique=True)
 
     # JSON blob to persist the state of the tdigest
-    blob = JSONField(default=dict)
+    blob = JSONField(default=dict, null=True)
 
     # User defined percentiles below and above which an anomaly will happen
     percentile_low = models.FloatField(null=True)
     percentile_high = models.FloatField(null=True)
 
     # These configure the accuracy/space tradeoff for the t-digest state
-    delta = models.FloatField(default=.01)
-    K = models.FloatField(default=25)
+    delta = models.FloatField(default=.01, null=True)
+    K = models.FloatField(default=25, null=True)
 
     # These are auto-populated and should not be altered by the user
     # I'm indexing these because we will likely want to do a fast search
