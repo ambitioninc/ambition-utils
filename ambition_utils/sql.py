@@ -5,10 +5,10 @@ from collections import namedtuple
 
 class SimpleSQL(object):
 
-    def __init__(self, relative_path_to_sql_file):
+    def __init__(self, path_to_sql_file, path_is_relative=True):
         """
 
-        :param relative_path_to_sql_file: the relative path from the file you call this in to the sql file you
+        :param path_to_sql_file: the relative path from the file you call this in to the sql file you
                                           want to execute.
         :param params: The params that will get passed into the sql template you right.
                        See: https://www.python.org/dev/peps/pep-0249/#paramstyle
@@ -26,10 +26,21 @@ class SimpleSQL(object):
 
             Then in my_app/my_python_code/my_script.py
 
-            connection = get_connection_function()
-            params = get_params_list_or_dict()
+            # These can be optionally passed to the SimpleSql object
+            connection = get_my_connection_function()
+            params = get_my_params_list_or_dict()
 
-            results = SQL('../my_sql_code').using(connection).with_params(params).as_dicts()
+            # run simple query with no params and return the results as dicts
+            SQL('../my_sql_code').as_dicts()
+
+            # run sql with a custom connection and parameters retrieving results as dataframe
+            sql = SQL('../my_sql_code')
+            sql.using(connection)
+            sql.with_params(params)
+            df = sql.as_dataframe()
+
+            # exact same command as above, but chained as a one-liner
+            results = SQL('../my_sql_code').using(connection).with_params(params).as_dataframe()
         """
         # get the path of the file that is calling this constructor
         frame = inspect.stack()[1]
@@ -37,7 +48,10 @@ class SimpleSQL(object):
         calling_module_path = os.path.abspath(os.path.dirname(calling_module.__file__))
 
         # read the sql template from the file
-        with open(os.path.join(calling_module_path, relative_path_to_sql_file)) as sql_file:
+        if path_is_relative:
+            path_to_sql_file = os.path.join(calling_module_path, path_to_sql_file)
+
+        with open(os.path.realpath(path_to_sql_file)) as sql_file:
             self.template = sql_file.read()
 
         self._params = []
@@ -70,7 +84,7 @@ class SimpleSQL(object):
             self._run()
         return self._raw_columns
 
-    def using(self, connection):
+    def using_connection(self, connection):
         self._raw_connection = connection
         return self
 
