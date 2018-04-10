@@ -2,6 +2,7 @@ import os
 import inspect
 from collections import namedtuple
 from django.template import Template, Context
+from django.db.utils import ProgrammingError
 
 
 class SQLBase(object):
@@ -47,12 +48,16 @@ class SQLBase(object):
 
     def _run(self):
         with self._connection.cursor() as cursor:
-            print '~'*80
-            print self.raw_sql
-            print '~'*80
             cursor.execute(self.raw_sql, self._params)
-            self._raw_results = list(cursor.fetchall())
-            self._raw_columns = [col[0] for col in cursor.description]
+            try:
+                self._raw_results = list(cursor.fetchall())
+                self._raw_columns = [col[0] for col in cursor.description]
+            except ProgrammingError as e:
+                if str(e) == 'no results to fetch':
+                    self._raw_results = []
+                    self._raw_columns = []
+                else:
+                    raise
 
     def using_connection(self, connection):
         self._raw_connection = connection
