@@ -1,19 +1,30 @@
 import os
 import inspect
 from collections import namedtuple
+from django.template import Template, Context
 
 
 class SQLBase(object):
 
     def __init__(self):
+        self._raw_sql = None
         self._params = []
         self._raw_results = None
         self._raw_columns = None
         self._raw_connection = None
+        self._django_context = None
+        self._raw_sql = None
+        self._rendered_sql = None
 
     @property
     def raw_sql(self):
-        raise NotImplementedError('You must define the raw_sql propery')
+        if self._rendered_sql is None:
+            if self._django_context is not None:
+                template = Template(self._raw_sql)
+                self._rendered_sql = template.render(context=Context(self._django_context))
+            else:
+                self._rendered_sql = self._raw_sql
+        return self._rendered_sql
 
     @property
     def _connection(self):
@@ -36,6 +47,9 @@ class SQLBase(object):
 
     def _run(self):
         with self._connection.cursor() as cursor:
+            print '~'*80
+            print self.raw_sql
+            print '~'*80
             cursor.execute(self.raw_sql, self._params)
             self._raw_results = list(cursor.fetchall())
             self._raw_columns = [col[0] for col in cursor.description]
@@ -44,7 +58,16 @@ class SQLBase(object):
         self._raw_connection = connection
         return self
 
+    def with_context(self, context):
+        """
+        specify a dict of django-context for rendering sql
+        """
+        self._django_context = context
+
     def with_params(self, params):
+        """
+        specify a list or dict of sql params
+        """
         self._params = params
         return self
 
@@ -136,10 +159,6 @@ class FileSQL(SQLBase):
         with open(os.path.realpath(path_to_sql_file)) as sql_file:
             self._raw_sql = sql_file.read()
 
-    @property
-    def raw_sql(self):
-        return self._raw_sql
-
 
 class StringSQL(SQLBase):
     def __init__(self, sql_query_string):
@@ -149,7 +168,3 @@ class StringSQL(SQLBase):
         """
         super(StringSQL, self).__init__()
         self._raw_sql = sql_query_string
-
-    @property
-    def raw_sql(self):
-        return self._raw_sql
