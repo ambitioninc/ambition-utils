@@ -37,16 +37,16 @@ class SQLBase(object):
     @property
     def _results(self):
         if self._raw_results is None:
-            self._run()
+            self.run()
         return self._raw_results
 
     @property
     def _columns(self):
         if self._raw_columns is None:
-            self._run()
+            self.run()
         return self._raw_columns
 
-    def _run(self):
+    def run(self):
         with self._connection.cursor() as cursor:
             cursor.execute(self.raw_sql, self._params)
             try:
@@ -105,6 +105,30 @@ class SQLBase(object):
             raise ImportError('\n\nNope! This method requires that pandas be installed.  You know what to do.')
 
         return pd.DataFrame(self._results, columns=self._columns)
+
+    def to_tuples(self):
+        """
+        alias
+        """
+        return self.as_tuples()
+
+    def to_dicts(self):
+        """
+        alias
+        """
+        return self.as_dicts()
+
+    def to_named_tuples(self):
+        """
+        alias
+        """
+        return self.as_named_tuples()
+
+    def to_dataframe(self):
+        """
+        alias
+        """
+        return self.as_dataframe()
 
 
 class FileSQL(SQLBase):
