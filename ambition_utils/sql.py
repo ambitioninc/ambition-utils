@@ -88,11 +88,11 @@ class SQLBase(object):
         """
         return [dict(zip(self._columns, row)) for row in self._results]
 
-    def as_named_tuples(self):
+    def as_named_tuples(self, named_tuple_name='Result'):
         """
         :return: Results as a list of named tuples
         """
-        nt_result = namedtuple('Result', self._columns)
+        nt_result = namedtuple(named_tuple_name, self._columns)
         return [nt_result(*row) for row in self._results]
 
     def as_dataframe(self):
