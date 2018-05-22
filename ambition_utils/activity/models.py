@@ -2,6 +2,8 @@ from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
 
@@ -44,6 +46,10 @@ class ActivityGroup(models.Model):
     name = models.CharField(max_length=255, blank=False, null=False)
     time_created = models.DateTimeField(auto_now_add=True, db_index=True)
     time_finished = models.DateTimeField(null=True, db_index=True)
+    # an optional context object for filtering activity groups by related sets
+    context_object_type = models.ForeignKey(ContentType, null=True, on_delete=models.PROTECT)
+    context_object_id = models.PositiveIntegerField(null=True)
+    context_object = GenericForeignKey('context_object_type', 'context_object_id')
     status = models.CharField(
         max_length=255,
         choices=get_sorted_enum_types(ActivityGroupStatus),
@@ -51,22 +57,25 @@ class ActivityGroup(models.Model):
         db_index=True
     )
     error_message = models.TextField(blank=True, null=True)
+    # attributes to track progress of this process
+    # this is especially helpful when this process can't be broken-down into individual activities
+    steps_total = models.IntegerField(null=True)
+    steps_complete = models.IntegerField(null=True)
 
     def __str__(self):
         return self.name
 
     def finish(self, status=ActivityGroupStatus.SUCCESS.value):
-        self.status = status
-        self.time_finished = datetime.utcnow()
-        self.save()
+        ActivityGroup.objects.filter(id=self.id).update(status=status, time_finished=datetime.utcnow())
         return self
 
     def success(self):
         return self.finish(status=ActivityGroupStatus.SUCCESS.value)
 
     def failure(self, message):
-        self.error_message = message
-        return self.finish(status=ActivityGroupStatus.FAILURE.value)
+        ActivityGroup.objects.filter(id=self.id).update(
+            status=ActivityGroupStatus.FAILURE.value, time_finished=datetime.utcnow(), error_message=message)
+        return self
 
 
 class Activity(models.Model):
