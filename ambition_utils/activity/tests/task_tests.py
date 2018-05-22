@@ -72,10 +72,12 @@ class ActivityManagedTaskMixinTest(TestCase):
 
     def test_activity_group_name(self):
         self.assertEqual(
-            ActivityManagedTaskMixin().activity_group_name,
+            ActivityManagedTaskMixin().get_activity_group_name(),
             'ActivityManagedTaskMixin'
         )
-        mixin = ActivityManagedTaskMixin()
-        mixin._activity_group_name = 'test name'
 
-        self.assertEqual(mixin.activity_group_name, 'test name')
+        class TestTask(ActivityManagedTaskMixin):
+            def get_activity_group_name(self):
+                return 'test name'
+        mixin = TestTask()
+        self.assertEqual(mixin.get_activity_group_name(), 'test name')

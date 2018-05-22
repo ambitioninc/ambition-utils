@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+0.4.0
+-----
+* Updated activity to include a reference to a context object and attributes to track completion as a ratio
+
 0.3.0
 -----
 * Use tox to test more versions
