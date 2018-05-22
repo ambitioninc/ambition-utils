@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from functools import wraps
 from inspect import getmembers
 from six import reraise
@@ -41,16 +42,21 @@ class ActivityManagedTaskMixin(object):
     2. name the task methods that you wish track individually with "_activity" suffix
     3. provide a uuid when instantiating the task
     """
-    _activity_group_name = None
-
     def __init__(self, *args, **kwargs):
         if 'uuid' in kwargs:
-            uuid = kwargs.pop('uuid', None)
+            self.uuid = kwargs.pop('uuid', None)
             activity_names = [
                 member[0] for member in getmembers(self)
                 if hasattr(member[1], 'activity_enabled')
             ]
-            self.activity_group, created = ActivityGroup.objects.get_or_create(uuid=uuid, name=self.activity_group_name)
+            context_object = self.get_context_object()
+            context_object_id = getattr(context_object, 'id', None)
+            context_object_type = None
+            if context_object is not None:  # pragma: no cover
+                context_object_type = ContentType.objects.get_for_model(context_object)
+            self.activity_group, created = ActivityGroup.objects.get_or_create(
+                uuid=self.uuid, name=self.get_activity_group_name(), context_object_id=context_object_id,
+                context_object_type=context_object_type)
 
             # decorate the activity methods
             for activity_name in activity_names:
@@ -64,8 +70,8 @@ class ActivityManagedTaskMixin(object):
 
         super(ActivityManagedTaskMixin, self).__init__(*args, **kwargs)
 
-    @property
-    def activity_group_name(self):
-        if self._activity_group_name is not None:
-            return self._activity_group_name
-        return str(self.__class__.__name__)
+    def get_activity_group_name(self):
+        return self.__class__.__name__
+
+    def get_context_object(self):
+        return None
