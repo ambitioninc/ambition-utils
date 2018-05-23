@@ -148,8 +148,8 @@ class AnomalyUnitTests(TestCase):
 
     def test_unassigned_percentiles(self):
         detector = NonIncrementalAnomaly(name='non_incremental')
-        self.assertEqual(detector.min_num_points_high, sys.maxint)
-        self.assertEqual(detector.min_num_points_low, sys.maxint)
+        self.assertEqual(detector.min_num_points_high, sys.maxsize)
+        self.assertEqual(detector.min_num_points_low, sys.maxsize)
 
     def test_bad_update(self):
         detector = IncrementalAnomaly(name='non_incremental')

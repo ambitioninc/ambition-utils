@@ -11,9 +11,6 @@ class TimeHelperTestCase(TestCase):
         """
         Makes sure the time zones are returned as dicts and that eastern is first
         """
-        print 'REABLE THESE TESTS'
-        return
-
         time_zones = get_time_zones()
 
         self.assertEqual(time_zones[0]['id'], 'US/Eastern')
@@ -25,9 +22,6 @@ class TimeHelperTestCase(TestCase):
         """
         Makes sure the time zones are returned as tuples and that eastern is first
         """
-        print 'REABLE THESE TESTS'
-        return
-
         time_zones = get_time_zones(return_as_tuple=True)
 
         self.assertEqual(time_zones[0][0], 'US/Eastern')

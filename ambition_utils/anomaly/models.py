@@ -120,13 +120,13 @@ class AnomalyBase(models.Model):
     @property
     def min_num_points_high(self):
         if self.percentile_high is None:
-            return sys.maxint
+            return sys.maxsize
         return 100. / (100. - self.percentile_high)
 
     @property
     def min_num_points_low(self):
         if self.percentile_low is None:
-            return sys.maxint
+            return sys.maxsize
         return 100. / self.percentile_low
 
     def update(self, data, reset_threshold=False):
