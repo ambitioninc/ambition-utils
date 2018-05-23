@@ -1,5 +1,7 @@
 import datetime
 import sys
+from numbers import Number
+from typing import Union, Iterable, List
 
 
 from django.db import models
@@ -32,7 +34,10 @@ class AnomalyBaseManager(ManagerUtilsManager):
     def get_queryset(self):
         return AnomalyBaseQueryset(self.model)
 
-    def unprocessed(self, assume_now=None):
+    def unprocessed(
+            self,
+            assume_now: Union[datetime.datetime, None]
+    ) -> AnomalyBaseQueryset:
         return self.get_queryset().unprocessed(assume_now=assume_now)
 
 
@@ -88,27 +93,27 @@ class AnomalyBase(models.Model):
 
     objects = AnomalyBaseManager()
 
-    def compute_uid(self):
+    def compute_uid(self) -> str:
         """
         Override this method with code to populate your uid field
         """
         raise NotImplementedError('you must define a .compute_uid() method')
 
     @property
-    def count(self):
+    def count(self) -> int:
         if self.IS_INCREMENTAL:
             self.num_values_ingested = self.digest.n
         return self.num_values_ingested
 
     @count.setter
-    def count(self, new_count):
+    def count(self, new_count: int) -> None:
         if self.IS_INCREMENTAL:
             raise ValueError('Can\'t set count on an incrmental anomaly detector')
         else:
             self.num_values_ingested = new_count
 
     @cached_property
-    def digest(self):
+    def digest(self) -> TDigest:
         """
         This property pulls from the database to populate a tdigest instance
         """
@@ -118,13 +123,13 @@ class AnomalyBase(models.Model):
         return dig
 
     @property
-    def min_num_points_high(self):
+    def min_num_points_high(self) -> float:
         if self.percentile_high is None:
             return sys.maxsize
         return 100. / (100. - self.percentile_high)
 
     @property
-    def min_num_points_low(self):
+    def min_num_points_low(self) -> float:
         if self.percentile_low is None:
             return sys.maxsize
         return 100. / self.percentile_low
@@ -137,7 +142,11 @@ class AnomalyBase(models.Model):
         """
         return self._update_digest(data, reset_threshold)
 
-    def _update_digest(self, data, reset_thresholds):
+    def _update_digest(
+            self,
+            data: Iterable[Union[float, int]],
+            reset_thresholds: bool
+    ) -> None:
         """
         Call this method with data observations.  These updates are incorporated into internal
         state that will be able to efficiently detect future abnormal values.
@@ -158,7 +167,7 @@ class AnomalyBase(models.Model):
         if reset_thresholds:
             self._set_thresholds_from_tdigest()
 
-    def _detect_point(self, val):
+    def _detect_point(self, val: Number) -> int:
         """
         compares a single number with thresholds to determine if it is an anomaly
         :param val:  a number.
@@ -173,7 +182,10 @@ class AnomalyBase(models.Model):
         # print '--- {} {} {} {} {} ---'.format(anomaly, val, self.count, self.threshold_low, self.threshold_high)
         return anomaly
 
-    def detect(self, data):
+    def detect(
+            self,
+            data: Union[Number, Iterable[Number]]
+    ) -> Union[int, Iterable[int]]:
         """
         Checks whether data is an anomaly
         :param data: either a number or an iterable of numbers
@@ -183,16 +195,17 @@ class AnomalyBase(models.Model):
                  0 represents no anomaly
         """
         if not hasattr(data, '__iter__'):
-            data = [data]
+            # This is actually okay typwise, but mypy doesn't like it
+            data_it: Iterable[Number] = [data]  # type: ignore
 
-        out = [self._detect_point(val) for val in data]
+        out: List[int] = [self._detect_point(val) for val in data_it]
 
         if len(out) == 1:
             return out[0]
         else:
             return out
 
-    def _check_percentiles(self):
+    def _check_percentiles(self) -> None:
         """
         Raises an error if percentile settings look hokey
         """
@@ -208,7 +221,7 @@ class AnomalyBase(models.Model):
         if not 50. <= self.percentile_high < 100.:
             raise BadPercentileValue('(50. < high_percentile < 100) is False')
 
-    def _set_thresholds_from_tdigest(self):
+    def _set_thresholds_from_tdigest(self) -> None:
         """
         Automatically sets thresholds based on desired percentiles and values
         already seen.
@@ -221,10 +234,10 @@ class AnomalyBase(models.Model):
         if self.count > 0:
             self.threshold_low = self.digest.percentile(self.percentile_low)
 
-    def _set_last_modified(self):
+    def _set_last_modified(self) -> None:
         self.last_modified = datetime.datetime.utcnow()
 
-    def pre_save_hooks(self):
+    def pre_save_hooks(self) -> None:
         """
         Everything here needs to be run to ensure state of the model is properly
         persisted to the database.
@@ -249,7 +262,7 @@ class AnomalyBase(models.Model):
         # accessing count property makes sure counts are properly mirrored from digest
         self.count
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         """
         Make sure the pre-save hooks are called on each save
         """
