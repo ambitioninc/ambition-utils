@@ -3,6 +3,7 @@ import inspect
 from collections import namedtuple
 from django.template import Template, Context
 from django.db.utils import ProgrammingError
+from typing import Dict, List, Tuple, Any
 
 
 class SQLBase(object):
@@ -56,75 +57,77 @@ class SQLBase(object):
                 if str(e) == 'no results to fetch':
                     self._raw_results = []
                     self._raw_columns = []
-                else:
+                else:  # pragma: no cover  No expected to hit this, but raise just in case
                     raise
 
     def using_connection(self, connection):
         self._raw_connection = connection
         return self
 
-    def with_context(self, context):
+    def with_context(self, context: Dict[str, Any]) -> 'SQLBase':
         """
         specify a dict of django-context for rendering sql
         """
         self._django_context = context
+        return self
 
-    def with_params(self, params):
+    def with_params(self, params: Dict[str, Any]) -> 'SQLBase':
         """
         specify a list or dict of sql params
         """
         self._params = params
         return self
 
-    def as_tuples(self):
+    def as_tuples(self) -> List[Tuple]:
         """
         :return: Results as a list of tuples
         """
         return self._results
 
-    def as_dicts(self):
+    def as_dicts(self) -> List[Dict[str, Any]]:
         """
         :return: Results as a list of dicts
         """
         return [dict(zip(self._columns, row)) for row in self._results]
 
-    def as_named_tuples(self, named_tuple_name='Result'):
+    def as_named_tuples(self, named_tuple_name='Result') -> List[Any]:
         """
         :return: Results as a list of named tuples
         """
-        nt_result = namedtuple(named_tuple_name, self._columns)
-        return [nt_result(*row) for row in self._results]
+        # Ignore typing in here because of unconventional namedtuple usage
+        nt_result = namedtuple(named_tuple_name, self._columns)  # type: ignore
+        return [nt_result(*row) for row in self._results]  # type: ignore
 
-    def as_dataframe(self):
+    def as_dataframe(self) -> Any:
         """
         :return: Results as a pandas dataframe
         """
         try:
             import pandas as pd
-        except ImportError:
+        except ImportError:  # pragma: no cover.  Not going to uninstall pandas to test this
             raise ImportError('\n\nNope! This method requires that pandas be installed.  You know what to do.')
 
         return pd.DataFrame(self._results, columns=self._columns)
 
-    def to_tuples(self):
+    def to_tuples(self) -> List[Tuple]:
         """
         alias
         """
         return self.as_tuples()
 
-    def to_dicts(self):
+    def to_dicts(self) -> List[Dict[str, Any]]:
         """
         alias
         """
         return self.as_dicts()
 
-    def to_named_tuples(self):
+    def to_named_tuples(self) -> List[Any]:
         """
         alias
         """
         return self.as_named_tuples()
 
-    def to_dataframe(self):
+    def to_dataframe(self) -> Any:
         """
         alias
         """
@@ -132,7 +135,11 @@ class SQLBase(object):
 
 
 class FileSQL(SQLBase):
-    def __init__(self, path_to_sql_file, path_is_relative=True):
+    def __init__(
+            self,
+            path_to_sql_file: str,
+            path_is_relative: bool =True
+    ) -> None:
         """
 
         :param path_to_sql_file: the relative path from the file you call this in to the sql file you
@@ -190,7 +197,10 @@ class FileSQL(SQLBase):
 
 
 class StringSQL(SQLBase):
-    def __init__(self, sql_query_string):
+    def __init__(
+            self,
+            sql_query_string: str
+    ) -> None:
         """
         Simple wrapper to execute a sql query against django models
         and provide the results as different object types.
