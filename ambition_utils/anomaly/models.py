@@ -45,7 +45,7 @@ class AnomalyBase(models.Model):
     """
     Override this class to create an Anomaly Detector.  Think of this as a key-value store
     for anomalies.  You update instances with observed data.  This teaches the detector what
-    "normal" is.  You then check values against what it has learned using the .check method.
+    "normal" is.  You then check values against what it has learned using the .detect(...) method.
 
     You are free to add whatever fields you want to your detector as long as they don't
     collide with the field names on this base class.
@@ -179,7 +179,6 @@ class AnomalyBase(models.Model):
 
         if self.count > self.min_num_points_high and self.threshold_high is not None and val > self.threshold_high:
             anomaly = 1
-        # print '--- {} {} {} {} {} ---'.format(anomaly, val, self.count, self.threshold_low, self.threshold_high)
         return anomaly
 
     def detect(
