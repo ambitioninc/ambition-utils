@@ -20,6 +20,7 @@ def get_version():
 install_requires = [
     'ambition-django-timezone-field>=2.0.1',
     'Django>=1.11',
+    'pandas>=0.21.0',
     'python-dateutil>=2.4.2',
     'fleming>=0.4.6',
     'django-manager-utils>=0.13.1',
