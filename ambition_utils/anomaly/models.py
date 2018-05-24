@@ -36,7 +36,7 @@ class AnomalyBaseManager(ManagerUtilsManager):
 
     def unprocessed(
             self,
-            assume_now: Union[datetime.datetime, None]
+            assume_now: Union[datetime.datetime, None] = None
     ) -> AnomalyBaseQueryset:
         return self.get_queryset().unprocessed(assume_now=assume_now)
 
@@ -194,8 +194,10 @@ class AnomalyBase(models.Model):
                  +1 represents high anomaly
                  0 represents no anomaly
         """
-        if not hasattr(data, '__iter__'):
-            # This is actually okay typwise, but mypy doesn't like it
+        # These are actually okay typwise, but mypy doesn't like it
+        if hasattr(data, '__iter__'):
+            data_it: Iterable[Number] = data  # type: ignore
+        else:
             data_it: Iterable[Number] = [data]  # type: ignore
 
         out: List[int] = [self._detect_point(val) for val in data_it]
