@@ -85,6 +85,7 @@ class PostgresLockTests(TransactionTestCase):
             response.update(queue.get())
 
         # Assert that we acquired the lock in the correct order
+        print(response)
         self.assertTrue(
             (response['two']['start_time'] - response['one']['start_time']).total_seconds() >= 4.9
         )
@@ -132,6 +133,7 @@ class PostgresLockTests(TransactionTestCase):
             response.update(queue.get())
 
         # Assert that process two raised a proper timeout exception
+        print(response)
         self.assertTrue(
             isinstance(response['two']['exception'], PostgresLockException)
         )
