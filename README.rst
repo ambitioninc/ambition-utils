@@ -14,7 +14,7 @@
 
 Requirements
 ------------
-* Python 3.6
+* Python 3.6+
 * Django 1.11+
 * Postgres 9.5+
 
@@ -30,6 +30,9 @@ To install the latest code directly from source, type::
 
 Documentation
 -------------
+
+Note: As of version 0.5.0, this project only supports Python3.6+
+If you need Python2 support, pin to `ambition-utils==0.4.0`
 
 Full documentation is available at http://ambition-utils.readthedocs.org
 
