@@ -86,7 +86,7 @@ class PostgresLockTests(TransactionTestCase):
 
         # Assert that we acquired the lock in the correct order
         self.assertTrue(
-            (response['two']['start_time'] - response['one']['start_time']).total_seconds() >= 5
+            (response['two']['start_time'] - response['one']['start_time']).total_seconds() >= 4.9
         )
 
     def test_lock_context_session_timeout(self):
