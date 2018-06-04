@@ -85,9 +85,8 @@ class PostgresLockTests(TransactionTestCase):
             response.update(queue.get())
 
         # Assert that we acquired the lock in the correct order
-        self.assertGreater(
-            response['two']['start_time'],
-            response['one']['end_time']
+        self.assertTrue(
+            (response['two']['start_time'] - response['one']['start_time']).total_seconds() >= 5
         )
 
     def test_lock_context_session_timeout(self):
