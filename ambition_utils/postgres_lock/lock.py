@@ -108,3 +108,5 @@ class PostgresLockContext(object):
         # Complete the transaction
         if self._transaction:
             self._transaction.__exit__(*args, **kwargs)
+        else:  # pragma: no cover
+            pass
