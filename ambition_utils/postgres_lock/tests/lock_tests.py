@@ -9,7 +9,7 @@ from django import db
 from ambition_utils.postgres_lock.lock import PostgresLockContext, PostgresLockException
 
 
-def acquire_postgres_lock(queue, process_name, lock_name, lock_timeout, sleep=0):
+def acquire_postgres_lock(queue, process_name, lock_name, lock_timeout, sleep=0):  # pragma: no cover
     try:
         with PostgresLockContext(lock_name, timeout=lock_timeout):
             # Create the start time
