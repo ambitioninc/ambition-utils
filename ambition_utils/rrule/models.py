@@ -123,12 +123,14 @@ class RRule(models.Model):
         :param force: If the next occurrence is none, force the rrule to generate another
         :rtype: rrule or None
         """
-
         # Get the last occurrence
         last_occurrence = last_occurrence or self.last_occurrence or datetime.utcnow()
 
         # Get the rule
         rule = self.get_rrule()
+
+        # Convert to local time zone for getting next occurrence, otherwise time zones ahead of utc will return the same
+        last_occurrence = fleming.convert_to_tz(last_occurrence, self.time_zone, return_naive=True)
 
         # Generate the next occurrence
         next_occurrence = rule.after(last_occurrence)
