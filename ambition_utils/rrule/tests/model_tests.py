@@ -2,6 +2,7 @@ import datetime
 
 import pytz
 from dateutil import rrule
+from django_dynamic_fixture import G
 from django.test import TestCase
 from freezegun import freeze_time
 
