@@ -188,6 +188,60 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 1, 3, 3))
         self.assertEqual(rule.next_occurrence, datetime.datetime(2017, 1, 4, 3))
 
+    def test_model_different_time_zone_ahead_daily(self):
+        """
+        Checks a time zone that is ahead of utc
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2018, 6, 19),
+            'byhour': 1,
+            'until': datetime.datetime(2018, 6, 20),
+        }
+
+        rule = RRule.objects.create(
+            rrule_params=params,
+            time_zone=pytz.timezone('Europe/London'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+
+        self.assertEqual(rule.time_zone.zone, 'Europe/London')
+        self.assertEqual(rule.last_occurrence, None)
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2018, 6, 19, 0))
+
+        # Handle the next occurrence
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2018, 6, 19, 0))
+        self.assertEqual(rule.next_occurrence, None)
+
+    def test_model_different_time_zone_ahead_crossing_day_daily(self):
+        """
+        Checks a time zone that is ahead of utc
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2018, 6, 19),
+            'byhour': 0,
+            'until': datetime.datetime(2018, 6, 20),
+        }
+
+        rule = RRule.objects.create(
+            rrule_params=params,
+            time_zone=pytz.timezone('Europe/London'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+
+        self.assertEqual(rule.time_zone.zone, 'Europe/London')
+        self.assertEqual(rule.last_occurrence, None)
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2018, 6, 18, 23))
+
+        # Handle the next occurrence
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2018, 6, 18, 23))
+        self.assertEqual(rule.next_occurrence, None)
+
     def test_model_different_time_zone_monthly(self):
         """
         Test a monthly first day of month rule to catch case of converting tz back
