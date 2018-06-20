@@ -222,7 +222,6 @@ class RRuleTest(TestCase):
         """
         If there is no next occurrence but we want to know what it would have been
         """
-
         # Create the params to create the rule
         params = {
             'freq': rrule.DAILY,
@@ -247,6 +246,7 @@ class RRuleTest(TestCase):
         rule.update_next_occurrence()
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 2, 1, 10))
         self.assertEqual(rule.next_occurrence, None)
+        self.assertEqual(rule.get_next_occurrence(), None)
         self.assertEqual(rule.get_next_occurrence(force=True), datetime.datetime(2017, 3, 1, 10))
 
         # Coverage for returning early
@@ -326,6 +326,18 @@ class RRuleTest(TestCase):
         rule.update_next_occurrence()
         self.assertEqual(rule.last_occurrence, datetime.datetime(2018, 6, 19, 0))
         self.assertEqual(rule.next_occurrence, None)
+
+        # Check using a past time
+        with freeze_time('1-3-2017'):
+            # Use the force flag to get the next date
+            self.assertEqual(rule.get_next_occurrence(), None)
+            self.assertEqual(rule.get_next_occurrence(force=True), datetime.datetime(2018, 7, 19, 0))
+
+        # Check using a future time
+        with freeze_time('1-3-2117'):
+            # Use the force flag to get the next date
+            self.assertEqual(rule.get_next_occurrence(), None)
+            self.assertEqual(rule.get_next_occurrence(force=True), datetime.datetime(2018, 7, 19, 0))
 
     def test_model_different_time_zone_ahead_crossing_day_daily(self):
         """
