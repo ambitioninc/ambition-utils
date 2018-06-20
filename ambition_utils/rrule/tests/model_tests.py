@@ -2,6 +2,7 @@ import datetime
 
 import pytz
 from dateutil import rrule
+from django_dynamic_fixture import G
 from django.test import TestCase
 from freezegun import freeze_time
 
@@ -16,6 +17,117 @@ class MockHandler(OccurrenceHandler):
     """
     def handle(self, rrule):
         return True
+
+
+class HandlerOne(OccurrenceHandler):
+
+    def handle(self):
+        return RRule.objects.filter(
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne',
+            next_occurrence__lte=datetime.datetime.utcnow(),
+        ).order_by('id')
+
+
+class HandlerTwo(OccurrenceHandler):
+
+    def handle(self):
+        return RRule.objects.filter(
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerTwo',
+            next_occurrence__lte=datetime.datetime.utcnow(),
+        ).order_by('id')
+
+
+class HandlerThree(OccurrenceHandler):
+
+    def handle(self):
+        return RRule.objects.filter(
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerThree',
+            next_occurrence__lte=datetime.datetime.utcnow(),
+        ).order_by('id')
+
+
+class RRuleManagerTest(TestCase):
+
+    @freeze_time('1-1-2017')
+    def test_run(self):
+        """
+        Should return the classes that have overdue rrule objects
+        """
+
+        # Make a program with HandlerOne that is not overdue
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
+
+        # Make an overdue program with HandlerOne
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1),
+        }
+
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
+
+        # Make an overdue program with HandlerTwo
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1),
+        }
+
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerTwo'
+        )
+
+        # Make a program with HandlerThree that is not overdue
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerThree'
+        )
+
+        # Get and verify the classes
+        classes = {
+            instance.__class__
+            for instance in RRule.objects.overdue_handler_class_instances()
+        }
+
+        self.assertEqual(classes, {HandlerOne, HandlerTwo})
+
+        # Handle overdue rrules
+        RRule.objects.handle_overdue()
+
+        # Check the recurrences. ids 2 and 3 should be updated
+        recurrences = list(RRule.objects.order_by('id'))
+
+        self.assertEqual(recurrences[0].next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(recurrences[1].next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 2))
+
+        # For coverage, make handler 3 overdue
+        with freeze_time('1-3-2017'):
+            RRule.objects.handle_overdue()
 
 
 class RRuleTest(TestCase):
@@ -110,7 +222,6 @@ class RRuleTest(TestCase):
         """
         If there is no next occurrence but we want to know what it would have been
         """
-
         # Create the params to create the rule
         params = {
             'freq': rrule.DAILY,
@@ -135,6 +246,7 @@ class RRuleTest(TestCase):
         rule.update_next_occurrence()
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 2, 1, 10))
         self.assertEqual(rule.next_occurrence, None)
+        self.assertEqual(rule.get_next_occurrence(), None)
         self.assertEqual(rule.get_next_occurrence(force=True), datetime.datetime(2017, 3, 1, 10))
 
         # Coverage for returning early
@@ -187,6 +299,72 @@ class RRuleTest(TestCase):
         rule.update_next_occurrence()
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 1, 3, 3))
         self.assertEqual(rule.next_occurrence, datetime.datetime(2017, 1, 4, 3))
+
+    def test_model_different_time_zone_ahead_daily(self):
+        """
+        Checks a time zone that is ahead of utc
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2018, 6, 19),
+            'byhour': 1,
+            'until': datetime.datetime(2018, 6, 20),
+        }
+
+        rule = RRule.objects.create(
+            rrule_params=params,
+            time_zone=pytz.timezone('Europe/London'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+
+        self.assertEqual(rule.time_zone.zone, 'Europe/London')
+        self.assertEqual(rule.last_occurrence, None)
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2018, 6, 19, 0))
+
+        # Handle the next occurrence
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2018, 6, 19, 0))
+        self.assertEqual(rule.next_occurrence, None)
+
+        # Check using a past time
+        with freeze_time('1-3-2017'):
+            # Use the force flag to get the next date
+            self.assertEqual(rule.get_next_occurrence(), None)
+            self.assertEqual(rule.get_next_occurrence(force=True), datetime.datetime(2018, 7, 19, 0))
+
+        # Check using a future time
+        with freeze_time('1-3-2117'):
+            # Use the force flag to get the next date
+            self.assertEqual(rule.get_next_occurrence(), None)
+            self.assertEqual(rule.get_next_occurrence(force=True), datetime.datetime(2018, 7, 19, 0))
+
+    def test_model_different_time_zone_ahead_crossing_day_daily(self):
+        """
+        Checks a time zone that is ahead of utc
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2018, 6, 19),
+            'byhour': 0,
+            'until': datetime.datetime(2018, 6, 20),
+        }
+
+        rule = RRule.objects.create(
+            rrule_params=params,
+            time_zone=pytz.timezone('Europe/London'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+
+        self.assertEqual(rule.time_zone.zone, 'Europe/London')
+        self.assertEqual(rule.last_occurrence, None)
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2018, 6, 18, 23))
+
+        # Handle the next occurrence
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2018, 6, 18, 23))
+        self.assertEqual(rule.next_occurrence, None)
 
     def test_model_different_time_zone_monthly(self):
         """

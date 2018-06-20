@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+0.6.1
+-----
+* Fixed bug with rrule future occurrences using time zones ahead of UTC
+
 0.6.0
 -----
 * Added postgres lock app
