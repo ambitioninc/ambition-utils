@@ -23,7 +23,7 @@ class HandlerOne(OccurrenceHandler):
 
     def handle(self):
         return RRule.objects.filter(
-            occurrence_handler_path='ambition_utils.rrule.tests.task_tests.HandlerOne',
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne',
             next_occurrence__lte=datetime.datetime.utcnow(),
         ).order_by('id')
 
@@ -32,7 +32,7 @@ class HandlerTwo(OccurrenceHandler):
 
     def handle(self):
         return RRule.objects.filter(
-            occurrence_handler_path='ambition_utils.rrule.tests.task_tests.HandlerTwo',
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerTwo',
             next_occurrence__lte=datetime.datetime.utcnow(),
         ).order_by('id')
 
@@ -41,98 +41,93 @@ class HandlerThree(OccurrenceHandler):
 
     def handle(self):
         return RRule.objects.filter(
-            occurrence_handler_path='ambition_utils.rrule.tests.task_tests.HandlerThree',
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerThree',
             next_occurrence__lte=datetime.datetime.utcnow(),
         ).order_by('id')
 
 
 class RRuleManagerTest(TestCase):
 
-    def test_handle_overdue(self):
+    @freeze_time('1-1-2017')
+    def test_run(self):
         """
-        This is the method that should be called in a recurring task
+        Should return the classes that have overdue rrule objects
         """
 
-        @freeze_time('1-1-2017')
-        def test_run(self):
-            """
-            Should return the classes that have overdue rrule objects
-            """
+        # Make a program with HandlerOne that is not overdue
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
 
-            # Make a program with HandlerOne that is not overdue
-            params = {
-                'freq': rrule.DAILY,
-                'interval': 1,
-                'dtstart': datetime.datetime(2017, 1, 2),
-            }
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
 
-            G(
-                RRule,
-                rrule_params=params,
-                occurrence_handler_path='ambition_utils.rrule.tests.task_tests.HandlerOne'
-            )
+        # Make an overdue program with HandlerOne
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1),
+        }
 
-            # Make an overdue program with HandlerOne
-            params = {
-                'freq': rrule.DAILY,
-                'interval': 1,
-                'dtstart': datetime.datetime(2017, 1, 1),
-            }
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
 
-            G(
-                RRule,
-                rrule_params=params,
-                occurrence_handler_path='ambition_utils.rrule.tests.task_tests.HandlerOne'
-            )
+        # Make an overdue program with HandlerTwo
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1),
+        }
 
-            # Make an overdue program with HandlerTwo
-            params = {
-                'freq': rrule.DAILY,
-                'interval': 1,
-                'dtstart': datetime.datetime(2017, 1, 1),
-            }
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerTwo'
+        )
 
-            G(
-                RRule,
-                rrule_params=params,
-                occurrence_handler_path='ambition_utils.rrule.tests.task_tests.HandlerTwo'
-            )
+        # Make a program with HandlerThree that is not overdue
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
 
-            # Make a program with HandlerThree that is not overdue
-            params = {
-                'freq': rrule.DAILY,
-                'interval': 1,
-                'dtstart': datetime.datetime(2017, 1, 2),
-            }
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerThree'
+        )
 
-            G(
-                RRule,
-                rrule_params=params,
-                occurrence_handler_path='ambition_utils.rrule.tests.task_tests.HandlerThree'
-            )
+        # Get and verify the classes
+        classes = {
+            instance.__class__
+            for instance in RRule.objects.overdue_handler_class_instances()
+        }
 
-            # Get and verify the classes
-            classes = {
-                instance.__class__
-                for instance in RRule.objects.overdue_handler_class_instances()
-            }
+        self.assertEqual(classes, {HandlerOne, HandlerTwo})
 
-            self.assertEqual(classes, {HandlerOne, HandlerTwo})
+        # Handle overdue rrules
+        RRule.objects.handle_overdue()
 
-            # Handle overdue rrules
+        # Check the recurrences. ids 2 and 3 should be updated
+        recurrences = list(RRule.objects.order_by('id'))
+
+        self.assertEqual(recurrences[0].next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(recurrences[1].next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 2))
+
+        # For coverage, make handler 3 overdue
+        with freeze_time('1-3-2017'):
             RRule.objects.handle_overdue()
-
-            # Check the recurrences. ids 2 and 3 should be updated
-            recurrences = list(RRule.objects.order_by('id'))
-
-            self.assertEqual(recurrences[0].next_occurrence, datetime.datetime(2017, 1, 2))
-            self.assertEqual(recurrences[1].next_occurrence, datetime.datetime(2017, 1, 2))
-            self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 2))
-            self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 2))
-
-            # For coverage, make handler 3 overdue
-            with freeze_time('1-3-2017'):
-                RRule.objects.handle_overdue()
 
 
 class RRuleTest(TestCase):
