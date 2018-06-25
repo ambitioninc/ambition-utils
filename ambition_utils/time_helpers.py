@@ -106,14 +106,12 @@ class Weekday:
         python_day = self.LOOKUP[(convention, 'python')][input_day]
 
         # Populate the appropriate values for all the conventions
-        self._output = {}
         for conv in self._CONVENTIONS:
-            self._output[conv] = self.LOOKUP[('python', conv)][python_day]
-            setattr(self, conv, self._output[conv])
+            setattr(self, conv, self.LOOKUP[('python', conv)][python_day])
 
     def __getitem__(self, convention):
         """
         Allow for dictionary-like access to convention attributes
         """
         self._check_convention(convention)
-        return self._output[convention]
+        return getattr(self, convention)
