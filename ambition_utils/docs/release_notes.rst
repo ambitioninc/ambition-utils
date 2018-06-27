@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+0.6.1
+-----
+* Fixed bug with rrule future occurrences using time zones ahead of UTC
+
+0.6.0
+-----
+* Added postgres lock app
+
 0.4.0
 -----
 * Updated activity to include a reference to a context object and attributes to track completion as a ratio

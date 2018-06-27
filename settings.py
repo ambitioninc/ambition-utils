@@ -1,5 +1,6 @@
 import os
 
+import sys
 from django.conf import settings
 
 
@@ -45,8 +46,38 @@ def configure_settings():
                 'ambition_utils.tests',
                 'ambition_utils.activity',
                 'ambition_utils.anomaly',
+                'ambition_utils.postgres_lock',
                 'ambition_utils.rrule',
             ),
+            LOGGING={
+                'version': 1,
+                'disable_existing_loggers': False,
+                'filters': {
+                    'require_debug_false': {
+                        '()': 'django.utils.log.RequireDebugFalse'
+                    }
+                },
+                'formatters': {
+                    'standard': {
+                        'format': '[%(asctime)s %(levelname)s] %(name)s:%(lineno)d \'%(message)s\'',
+                    }
+                },
+                'handlers': {
+                    'console': {
+                        'level': 'DEBUG',
+                        'class': 'logging.StreamHandler',
+                        'stream': sys.stdout,
+                        'formatter': 'standard'
+                    }
+                },
+                'loggers': {
+                    'ambition_utils': {
+                        'handlers': ['console'],
+                        'level': 'DEBUG',
+                        'propagate': True
+                    },
+                }
+            },
             ROOT_URLCONF='ambition_utils.urls',
             TIME_ZONE='UTC',
             USE_TZ=False,
