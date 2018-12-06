@@ -41,6 +41,21 @@ class OptionalForm(NestedFormMixin, forms.Form):
         return 'optional value'
 
 
+class BadParentFormExistingField(NestedFormMixin, forms.Form):
+    nested_form_configs = [
+        NestedFormConfig(
+            cls=NestedForm1,
+            key='nested_form_1',
+            pre=True,
+        )
+    ]
+
+    # Duplicate form field from nested
+    three = forms.CharField(error_messages={
+        'required': 'Three is required'
+    })
+
+
 class ParentForm(NestedFormMixin, forms.Form):
     nested_form_configs = [
         NestedFormConfig(
@@ -290,6 +305,14 @@ class NestedFormMixinTest(TestCase):
     """
     Tests for the nested form mixin with normal non model forms
     """
+
+    def test_duplicate_form_field_from_nested(self):
+        """
+        Test a form that has a duplicated form field from a nested form
+        """
+
+        with self.assertRaises(Exception):
+            BadParentFormExistingField()
 
     def test_field_prefix_validation_error(self):
         """

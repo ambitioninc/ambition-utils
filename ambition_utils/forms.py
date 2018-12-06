@@ -121,7 +121,7 @@ class NestedFormMixin(object):
             # Create a link field on the main form
             # Check if a field already exists
             if nested_form_config.key in self.fields:
-                raise Exception('A required nested field with key {0} already exists on the base form'.format(
+                raise Exception('A nested field with key {0} already exists on the base form'.format(
                     nested_form_config.key
                 ))
 
