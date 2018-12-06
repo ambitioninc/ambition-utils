@@ -1,9 +1,14 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from mock import MagicMock
 
-from ambition_utils.forms import NestedFormMixin, NestedFormMixinBase, NestedModelFormMixin, NestedFormConfig
+from ambition_utils.forms import NestedFormMixin, NestedFormConfig
 from ambition_utils.tests.models import FakeModel
+
+
+class BadFormNoSave(NestedFormMixin, forms.Form):
+    pass
 
 
 class NestedForm1(NestedFormMixin, forms.Form):
@@ -12,7 +17,7 @@ class NestedForm1(NestedFormMixin, forms.Form):
     })
     four = forms.CharField(required=False)
 
-    def save(self, **kwargs):
+    def save(self, *args, **kwargs):
         return kwargs['number'] * 10
 
 
@@ -22,7 +27,7 @@ class NestedForm2(NestedFormMixin, forms.Form):
     })
     six = forms.CharField(required=False)
 
-    def save(self, **kwargs):
+    def save(self, *args, **kwargs):
         return 2
 
 
@@ -32,7 +37,7 @@ class OptionalForm(NestedFormMixin, forms.Form):
     })
     eight = forms.CharField(required=False)
 
-    def save(self, **kwargs):
+    def save(self, *args, **kwargs):
         return 'optional value'
 
 
@@ -75,19 +80,13 @@ class ParentForm(NestedFormMixin, forms.Form):
     })
     two = forms.CharField(required=False)
 
-    # Flags for the 3 nested forms
-    nested_form_1_required = forms.BooleanField(required=False)
-    nested_form_2_required = forms.BooleanField(required=False)
-    optional_required = forms.BooleanField(required=False)
-    optional_required_2 = forms.BooleanField(required=False)
-
     def get_pre_save_method_kwargs(self):
         return {
             'number': 10,
             'another_number': 'ten'
         }
 
-    def save_form(self, **kwargs):
+    def save(self, *args, **kwargs):
         return 'the object'
 
 
@@ -151,9 +150,11 @@ class FormWithOptional(NestedFormMixin, forms.Form):
     nested_form_1_required = forms.BooleanField(required=False)
     optional_required = forms.BooleanField(required=False)
 
+    def save(self):
+        return 'saved'
 
-class ModelFormWithNestedForms(NestedModelFormMixin, forms.ModelForm):
 
+class ModelFormWithNestedForms(NestedFormMixin, forms.ModelForm):
     class Meta:
         model = FakeModel
         fields = ['name']
@@ -177,58 +178,69 @@ class ModelFormWithNestedForms(NestedModelFormMixin, forms.ModelForm):
         )
     ]
 
-    optional_required = forms.BooleanField(required=False)
-    optional_required_2 = forms.BooleanField(required=False)
+    def save(self, commit=True, **kwargs):
+        return super().save(commit=True)
 
 
-class NestedFormMixinBaseTest(TestCase):
+class NestedFormMixinUnitTest(TestCase):
+    """
+    Unit tests for the nested form mixin
+    """
+
+    def test_bad_form_with_no_save_method(self):
+        """
+        Asssert that the form has a save method
+        """
+
+        with self.assertRaises(Exception):
+            BadFormNoSave()
 
     def test_get_pre_save_method_kwargs(self):
         """
         Checks return value of pre save method
         """
-        mixin = NestedFormMixinBase()
-
-        self.assertEqual(mixin.get_pre_save_method_kwargs(), {})
+        self.assertEqual(
+            NestedFormMixin.get_pre_save_method_kwargs(MagicMock()),
+            {}
+        )
 
     def test_get_post_save_method_kwargs(self):
         """
         Checks return value of post save method
         """
-        mixin = NestedFormMixinBase()
-
-        self.assertEqual(mixin.get_post_save_method_kwargs(one='two'), {'one': 'two'})
-
-    def test_save_form(self):
-        """
-        Checks return value of save form method
-        """
-        mixin = NestedFormMixinBase()
-
-        self.assertEqual(mixin.save_form(), None)
+        self.assertEqual(
+            NestedFormMixin.get_post_save_method_kwargs(
+                MagicMock(),
+                one='two'
+            ),
+            {'one': 'two'}
+        )
 
     def test_save(self):
         """
         Makes sure parent form save is called
         """
         class ParentForm1(forms.Form):
-
             def save(self):
                 return 'saved'
 
-        class ChildForm(NestedFormMixinBase, ParentForm1):
+        class ChildForm(NestedFormMixin, ParentForm1):
             pass
 
         form = ChildForm()
-
         self.assertEqual(form.save(), 'saved')
 
     def test_form_is_required(self):
         """
         Should return True when required is set, otherwise checks the flag value
         """
-        class ParentForm1(NestedFormMixinBase, forms.Form):
+
+        # Create a test form
+        class ParentForm1(NestedFormMixin, forms.Form):
             the_key = forms.BooleanField(required=False)
+
+            def save(self):
+                return 'saved'
 
         # Required in config
         nested_form = NestedFormConfig(
@@ -238,11 +250,10 @@ class NestedFormMixinBaseTest(TestCase):
         )
         form = ParentForm1(data={})
         self.assertTrue(form.is_valid())
-
         self.assertTrue(form.form_is_required(nested_form))
 
         # Required from flag
-        nested_form = nested_form = NestedFormConfig(
+        nested_form = NestedFormConfig(
             cls=ParentForm1,
             key='one',
             required_key='the_key'
@@ -251,7 +262,6 @@ class NestedFormMixinBaseTest(TestCase):
             'the_key': '1'
         })
         self.assertTrue(form.is_valid())
-
         self.assertTrue(form.form_is_required(nested_form))
 
         # Not required from flag
@@ -262,11 +272,24 @@ class NestedFormMixinBaseTest(TestCase):
         )
         form = ParentForm1(data={})
         self.assertTrue(form.is_valid())
+        self.assertFalse(form.form_is_required(nested_form))
 
+        # Required key is None
+        nested_form = NestedFormConfig(
+            cls=ParentForm1,
+            key='one',
+            required=False,
+            required_key=None
+        )
+        form = ParentForm1(data={})
+        self.assertTrue(form.is_valid())
         self.assertFalse(form.form_is_required(nested_form))
 
 
 class NestedFormMixinTest(TestCase):
+    """
+    Tests for the nested form mixin with normal non model forms
+    """
 
     def test_field_prefix_validation_error(self):
         """
@@ -281,14 +304,18 @@ class NestedFormMixinTest(TestCase):
                 NestedFormConfig(cls=Form1, key='two')
             ]
 
+            def save(self):
+                return 'saved'
+
+        # Assert we raise a validation error from the two forms without a prefix
         with self.assertRaises(ValidationError):
             ParentForm1()
 
     def test_nested_required_fields(self):
         """
-        The ParentForm required field and 2 of the nested forms' required fields should be required. The second
-        optional form has a field prefix and provides the required field, so it should not cause an additional
-        validation error.
+        The ParentForm required field and 2 of the nested forms' required fields should be required.
+        The second optional form has a field prefix and provides the required field,
+        so it should not cause an additional validation error.
         """
         data = {
             'nested_form_1_required': '1',
@@ -299,7 +326,6 @@ class NestedFormMixinTest(TestCase):
 
         form = ParentForm(data=data)
         self.assertFalse(form.is_valid())
-
         self.assertEqual(len(form.errors), 3)
 
     def test_optional_form_flag_false(self):
@@ -313,7 +339,6 @@ class NestedFormMixinTest(TestCase):
 
         form = FormWithOptional(data=data)
         self.assertFalse(form.is_valid())
-
         self.assertEqual(len(form.errors), 2)
 
     def test_optional_form_flag_missing(self):
@@ -326,7 +351,6 @@ class NestedFormMixinTest(TestCase):
 
         form = FormWithOptional(data=data)
         self.assertFalse(form.is_valid())
-
         self.assertEqual(len(form.errors), 2)
 
     def test_optional_form_flag_true(self):
@@ -340,13 +364,14 @@ class NestedFormMixinTest(TestCase):
 
         form = FormWithOptional(data=data)
         self.assertFalse(form.is_valid())
-
         self.assertEqual(len(form.errors), 3)
 
     def test_full_scenario(self):
         """
         Covers all presave, save, postsave scenarios with multiple forms
         """
+
+        # Setup the testing data
         data = {
             'nested_form_1_required': '1',
             'nested_form_2_required': '1',
@@ -357,12 +382,16 @@ class NestedFormMixinTest(TestCase):
             'seven': '7',
         }
 
+        # Create the form
         form = ParentForm(data=data)
 
+        # Assert that the form is valid
         self.assertTrue(form.is_valid())
 
+        # Save the form
         return_value = form.save()
 
+        # Assert that we have the proper return value
         self.assertEqual(return_value, 'the object')
 
 
@@ -372,6 +401,8 @@ class NestedModelFormMixinTest(TestCase):
         """
         Verifies the model save still works as expected
         """
+
+        # Create the data to submit
         data = {
             'name': 'just a fake name',
             'optional_required': 'True',
@@ -379,11 +410,17 @@ class NestedModelFormMixinTest(TestCase):
             'seven': '7',
         }
 
+        # Create the form
         form = ModelFormWithNestedForms(data=data)
 
+        # Assert the form is valid
         self.assertTrue(form.is_valid())
 
-        form.save()
+        # Save the form
+        form.save(commit=True)
 
+        # Get the model that was saved
         fake_model = FakeModel.objects.get()
+
+        # Assert the model was saved correctly
         self.assertEqual(fake_model.name, 'just a fake name')
