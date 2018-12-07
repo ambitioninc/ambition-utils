@@ -17,8 +17,15 @@ class NestedForm1(NestedFormMixin, forms.Form):
     })
     four = forms.CharField(required=False)
 
-    def save(self, *args, **kwargs):
-        return kwargs['number'] * 10
+    def __init__(self, init_number, *args, **kwargs):
+        self.init_number = init_number
+        super(NestedForm1, self).__init__(*args, **kwargs)
+
+    def save(self, number):
+        return {
+            'init_number': self.init_number,
+            'number': number
+        }
 
 
 class NestedForm2(NestedFormMixin, forms.Form):
@@ -27,8 +34,15 @@ class NestedForm2(NestedFormMixin, forms.Form):
     })
     six = forms.CharField(required=False)
 
-    def save(self, *args, **kwargs):
-        return 2
+    def __init__(self, init_user_id, *args, **kwargs):
+        self.init_user_id = init_user_id
+        super(NestedForm2, self).__init__(*args, **kwargs)
+
+    def save(self, user_id):
+        return {
+            'init_user_id': self.init_user_id,
+            'user_id': user_id
+        }
 
 
 class OptionalForm(NestedFormMixin, forms.Form):
@@ -37,7 +51,7 @@ class OptionalForm(NestedFormMixin, forms.Form):
     })
     eight = forms.CharField(required=False)
 
-    def save(self, *args, **kwargs):
+    def save(self):
         return 'optional value'
 
 
@@ -95,11 +109,27 @@ class ParentForm(NestedFormMixin, forms.Form):
     })
     two = forms.CharField(required=False)
 
-    def get_pre_save_method_kwargs(self):
-        return {
-            'number': 10,
-            'another_number': 'ten'
-        }
+    def get_nested_form_init_args(self, nested_form_config, args, kwargs, base_form_args, base_form_kwargs):
+        if nested_form_config.key == 'nested_form_1':
+            args = [1] + args
+        elif nested_form_config.key == 'nested_form_2':
+            args = [2] + args
+
+        # Return the updated args
+        return args, kwargs
+
+    def get_nested_form_save_args(self, nested_form_config, args, kwargs, base_form_args, base_form_kwargs):
+        if nested_form_config.key == 'nested_form_1':
+            kwargs.update({
+                'number': 10,
+            })
+        elif nested_form_config.key == 'nested_form_2':
+            kwargs.update({
+                'user_id': 5,
+            })
+
+        # Return the updated args
+        return args, kwargs
 
     def save(self, *args, **kwargs):
         return 'the object'
@@ -132,11 +162,6 @@ class FormWithAlwaysRequired(NestedFormMixin, forms.Form):
     })
     two = forms.CharField(required=False)
 
-    # Flags for the 3 nested forms
-    nested_form_1_required = forms.BooleanField(required=False)
-    nested_form_2_required = forms.BooleanField(required=False)
-    optional_required = forms.BooleanField(required=False)
-
 
 class FormWithOptional(NestedFormMixin, forms.Form):
     nested_form_configs = [
@@ -161,9 +186,12 @@ class FormWithOptional(NestedFormMixin, forms.Form):
     })
     two = forms.CharField(required=False)
 
-    # Flags for the 2 nested forms
-    nested_form_1_required = forms.BooleanField(required=False)
-    optional_required = forms.BooleanField(required=False)
+    def get_nested_form_init_args(self, nested_form_config, args, kwargs, base_form_args, base_form_kwargs):
+        if nested_form_config.key == 'nested_form_1':
+            args = [1] + args
+
+        # Return the updated args
+        return args, kwargs
 
     def save(self):
         return 'saved'
@@ -210,25 +238,36 @@ class NestedFormMixinUnitTest(TestCase):
         with self.assertRaises(Exception):
             BadFormNoSave()
 
-    def test_get_pre_save_method_kwargs(self):
+    def test_get_nested_form_init_args(self):
         """
-        Checks return value of pre save method
+        Checks return value of init args method
         """
         self.assertEqual(
-            NestedFormMixin.get_pre_save_method_kwargs(MagicMock()),
-            {}
+            NestedFormMixin.get_nested_form_init_args(
+                MagicMock(),
+                nested_form_config=MagicMock(),
+                args=['1'],
+                kwargs={'one': 'one'},
+                base_form_args=[],
+                base_form_kwargs={}
+            ),
+            (['1'], {'one': 'one'})
         )
 
-    def test_get_post_save_method_kwargs(self):
+    def get_nested_form_save_args(self):
         """
-        Checks return value of post save method
+        Checks return value of save args method
         """
         self.assertEqual(
-            NestedFormMixin.get_post_save_method_kwargs(
+            NestedFormMixin.get_nested_form_save_args(
                 MagicMock(),
-                one='two'
+                nested_form_config=MagicMock(),
+                args=['1'],
+                kwargs={'one': 'one'},
+                base_form_args=[],
+                base_form_kwargs={}
             ),
-            {'one': 'two'}
+            (['1'], {'one': 'one'})
         )
 
     def test_save(self):

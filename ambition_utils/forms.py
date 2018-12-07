@@ -13,7 +13,7 @@ class NestedFormConfig(object):
     NestedFormMixinBase can define a nested_form_configs list with instances of NestedFormConfig
     """
 
-    def __init__(self, cls, key, required=False, field_prefix=None, required_key=None, pre=False, post=False):
+    def __init__(self, cls, key, required=False, field_prefix=None, required_key=None, pre=False, post=False, error_messages=None):
         """
         Sets all default values
         :param cls: Any form class reference
@@ -26,7 +26,7 @@ class NestedFormConfig(object):
         the submitted data to have a prefix before each form field name.
         :type field_prefix: str
         :param required_key: Optional form field that causes the form to be required based on its presence.
-        :type required_key: bool
+        :type required_key: str or None
         :param pre: Flag to indicate that the nested form should be processed before the parent form save method. This
         allows the nested form's save value to be available in the save method arguments keyed off of the key param.
         :type pre: bool
@@ -43,6 +43,7 @@ class NestedFormConfig(object):
         self.required_key = required_key
         self.pre = pre
         self.post = post
+        self.error_messages = error_messages
         self.instance = None
 
         # Assert that we have a class and key objects
@@ -84,10 +85,6 @@ class NestedFormMixin(object):
         # Keep track of form prefixes to guarantee multiple of the same form are properly prefixed
         form_prefixes = {}
         for nested_form_config in self.nested_form_configs:
-            # Deep copy the form kwargs to pass to each form instance
-            form_kwargs = deepcopy(kwargs)
-            prefix = nested_form_config.field_prefix
-
             # Check if this form class already exists
             if nested_form_config.cls in form_prefixes:
                 # Make sure both have a prefix value
@@ -95,28 +92,6 @@ class NestedFormMixin(object):
                     raise ValidationError(
                         'Form {0} must have a field prefix'.format(nested_form_config.cls.__name__)
                     )
-
-            # Set the prefix value to the form config prefix
-            form_prefixes[nested_form_config.cls] = nested_form_config.field_prefix
-
-            # Process the form field keys when there is a prefix defined on the nested form
-            if form_kwargs.get('data') and prefix:
-                for prefixed_key, value in deepcopy(form_kwargs['data']).items():
-                    # Check if the prefix is there to replace
-                    to_replace = '{0}_'.format(prefix)
-                    if prefixed_key.startswith(to_replace):
-                        # Replace the prefix
-                        key = prefixed_key.replace(to_replace, '')
-                        form_kwargs['data'][key] = value
-
-                        # Get rid of the prefixed key
-                        form_kwargs['data'].pop(prefixed_key)
-
-            # Create the form instance and pass the form data
-            nested_form_config.set_instance(*args, **form_kwargs)
-
-            # Add the form config to the list of nested form configs
-            self.nested_forms.append(nested_form_config)
 
             # Create a link field on the main form
             # Check if a field already exists
@@ -127,6 +102,44 @@ class NestedFormMixin(object):
 
             # Add the field to the base form so we can add errors and data for cleaning
             self.fields[nested_form_config.key] = forms.Field(required=False)
+
+            # Build the nested form args, kwargs to init the nested form with
+            nested_form_args = []
+            nested_form_kwargs = {
+                'data': {}
+            }
+
+            # Get the prefix
+            prefix = nested_form_config.field_prefix
+
+            # Set the prefix value to the form config prefix
+            form_prefixes[nested_form_config.cls] = nested_form_config.field_prefix
+
+            # Process the form field keys when there is a prefix defined on the nested form
+            for key, value in deepcopy(self.data).items():
+                # Check if the prefix is there to replace
+                to_replace = '{0}_'.format(prefix)
+                if key.startswith(to_replace):
+                    # Update the key
+                    key = key.replace(to_replace, '')
+
+                # Apply the value to the data dict
+                nested_form_kwargs['data'][key] = value
+
+            # Get the nested form config init arguments
+            nested_form_args, nested_form_kwargs = self.get_nested_form_init_args(
+                nested_form_config=nested_form_config,
+                args=nested_form_args,
+                kwargs=nested_form_kwargs,
+                base_form_args=args,
+                base_form_kwargs=kwargs
+            )
+
+            # Create the form instance and pass the form data
+            nested_form_config.set_instance(*nested_form_args, **nested_form_kwargs)
+
+            # Add the form config to the list of nested form configs
+            self.nested_forms.append(nested_form_config)
 
     @wrapt.decorator
     @transaction.atomic
@@ -144,43 +157,56 @@ class NestedFormMixin(object):
         :return:
         """
 
-        # Get any additional arguments that should be passed to the save methods
-        nested_form_kwargs = {}
-        nested_form_kwargs.update(self.get_pre_save_method_kwargs())
-
-        # Create the base form kwargs
-        base_form_kwargs = {}
-        base_form_kwargs.update(kwargs)
-        base_form_kwargs.update(self.get_pre_save_method_kwargs())
-
         # Get all required nested forms
         required_forms = self.get_required_forms()
+
+        # Keep track of the form responses
+        responses = {}
 
         # Save all pre-save forms and apply the results to the base form kwargs and nested form kwargs
         for form in required_forms:
             if form.pre:
-                # Store the return value keyed off the form.key property
-                response = form.instance.save(**nested_form_kwargs)
-                nested_form_kwargs[form.key] = response
-                base_form_kwargs[form.key] = response
+                # Get the args and kwargs for the nested form
+                nested_form_args, nested_form_kwargs = self.get_nested_form_save_args(
+                    nested_form_config=form,
+                    args=[],
+                    kwargs={},
+                    base_form_args=args,
+                    base_form_kwargs=kwargs
+                )
+
+                # Call the save method of the nested form
+                response = form.instance.save(*nested_form_args, **nested_form_kwargs)
+
+                # Store the response
+                responses[form.key] = response
 
         # Save the parent form and store the result under the save key
-        nested_form_kwargs['save'] = wrapped(*args, **base_form_kwargs)
-
-        # Get any additional post-save arguments
-        nested_form_kwargs = self.get_post_save_method_kwargs(**nested_form_kwargs)
+        responses['save'] = wrapped(*args, **kwargs, **responses)
 
         # Save all post-save forms
         for form in required_forms:
             if form.post:
-                # Store the return value keyed off the form.key property
-                nested_form_kwargs[form.key] = form.instance.save(**nested_form_kwargs)
+                # Get the args and kwargs for the nested form
+                nested_form_args, nested_form_kwargs = self.get_nested_form_save_args(
+                    nested_form_config=form,
+                    args=[],
+                    kwargs={},
+                    base_form_args=[],
+                    base_form_kwargs={}
+                )
+
+                # Call the save method of the nested form
+                response = form.instance.save(*nested_form_args, **nested_form_kwargs)
+
+                # Store the response
+                responses[form.key] = response
 
         # Call the save nested method
-        self.save_nested(nested_form_kwargs['save'], **nested_form_kwargs)
+        self.save_nested(responses['save'], **responses)
 
         # Return the value from the parent form's save method
-        return nested_form_kwargs['save']
+        return responses['save']
 
     def save_nested(self, response, **kwargs):
         """
@@ -190,19 +216,29 @@ class NestedFormMixin(object):
         """
         pass
 
-    def get_pre_save_method_kwargs(self):
+    def get_nested_form_init_args(self, nested_form_config, args, kwargs, base_form_args, base_form_kwargs):
         """
-        Optionally return a dict of data that will be passed through the chain of save methods with
-        pre-forms, parent form, and post-forms
-        """
-        return {}
+        Given a nested form config get the init arguments, should return args, kwargs
 
-    def get_post_save_method_kwargs(self, **kwargs):
+        :param nested_form_config: The nested form config
+        :param args: The args that will be passed into the init method
+        :param kwargs: The kwargs that will be passed into the init method
+        :param base_form_args: The args that were given to the base form
+        :param base_form_kwargs: The kwargs that were given to the base form
         """
-        Optionally return a dict of data that will be passed to the post-forms. All previous form data will be
-        available here including pre-save data and parent form save data.
+        return args, kwargs
+
+    def get_nested_form_save_args(self, nested_form_config, args, kwargs, base_form_args, base_form_kwargs):
         """
-        return kwargs
+        Given a nested form config get the save arguments, should return args, kwargs
+
+        :param nested_form_config: The nested form config
+        :param args: The args that will be passed into the init method
+        :param kwargs: The kwargs that will be passed into the init method
+        :param base_form_args: The args that were given to the base form
+        :param base_form_kwargs: The kwargs that were given to the base form
+        """
+        return args, kwargs
 
     def get_required_forms(self):
         """
