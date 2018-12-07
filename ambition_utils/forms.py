@@ -72,16 +72,13 @@ class NestedFormConfig(object):
         assert self.cls
         assert self.key
 
-    def set_instance(self, base_form, *args, **kwargs):
+    def set_instance(self, *args, **kwargs):
         """
         Set the instance of the created form
         """
 
         # Create the instance with the passed arguments
         self.instance = self.cls(*args, **kwargs)
-
-        # Add the base form as an attribute onto the nested form
-        setattr(self.instance, 'nested_form_parent', base_form)
 
         # Apply any custom error messages
         for field_name, messages in self.error_messages.items():
@@ -202,7 +199,8 @@ class NestedFormMixin(object):
                     args=[],
                     kwargs={},
                     base_form_args=args,
-                    base_form_kwargs=kwargs
+                    base_form_kwargs=kwargs,
+                    form_responses=responses
                 )
 
                 # Call the save method of the nested form
@@ -212,7 +210,7 @@ class NestedFormMixin(object):
                 responses[form.key] = response
 
         # Save the parent form and store the result under the save key
-        responses['save'] = wrapped(*args, **kwargs, **responses)
+        responses['base'] = wrapped(*args, **kwargs, **responses)
 
         # Save all post-save forms
         for form in required_forms:
@@ -223,7 +221,8 @@ class NestedFormMixin(object):
                     args=[],
                     kwargs={},
                     base_form_args=args,
-                    base_form_kwargs=kwargs
+                    base_form_kwargs=kwargs,
+                    form_responses=responses
                 )
 
                 # Call the save method of the nested form
@@ -233,10 +232,10 @@ class NestedFormMixin(object):
                 responses[form.key] = response
 
         # Call the save nested method
-        self.save_nested(responses['save'], **responses)
+        self.save_nested(responses['base'], **responses)
 
         # Return the value from the parent form's save method
-        return responses['save']
+        return responses['base']
 
     def save_nested(self, response, **kwargs):
         """
@@ -258,7 +257,15 @@ class NestedFormMixin(object):
         """
         return args, kwargs
 
-    def get_nested_form_save_args(self, nested_form_config, args, kwargs, base_form_args, base_form_kwargs):
+    def get_nested_form_save_args(
+        self,
+        nested_form_config,
+        args,
+        kwargs,
+        base_form_args,
+        base_form_kwargs,
+        form_responses
+    ):
         """
         Given a nested form config get the save arguments, should return args, kwargs
 
@@ -267,6 +274,7 @@ class NestedFormMixin(object):
         :param kwargs: The kwargs that will be passed into the init method
         :param base_form_args: The args that were given to the base form
         :param base_form_kwargs: The kwargs that were given to the base form
+        :param form_responses: Any current responses we have from saved forms
         """
         return args, kwargs
 
