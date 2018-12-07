@@ -13,26 +13,48 @@ class NestedFormConfig(object):
     NestedFormMixinBase can define a nested_form_configs list with instances of NestedFormConfig
     """
 
-    def __init__(self, cls, key, required=False, field_prefix=None, required_key=None, pre=False, post=False, error_messages=None):
+    def __init__(
+        self,
+        cls,
+        key,
+        required=False,
+        field_prefix=None,
+        required_key=None,
+        pre=False,
+        post=False,
+        error_messages=None
+    ):
         """
         Sets all default values
+
         :param cls: Any form class reference
+
         :param key: The dict key that will be used when passing around form arguments during processing.
-        The value of this dict will be the return value of the save method
+                    The value of this dict will be the return value of the save method
         :type key: str
+
         :param required: Determines if this form's fields are always required
         :type required: bool
-        :param field_prefix: Optional field for when multiple instance of the same form are nested. This allows
-        the submitted data to have a prefix before each form field name.
+
+        :param field_prefix: Optional field for when multiple instance of the same form are nested.
+                             This allows the submitted data to have a prefix before each form field name.
         :type field_prefix: str
+
         :param required_key: Optional form field that causes the form to be required based on its presence.
         :type required_key: str or None
-        :param pre: Flag to indicate that the nested form should be processed before the parent form save method. This
-        allows the nested form's save value to be available in the save method arguments keyed off of the key param.
+
+        :param pre: Flag to indicate that the nested form should be processed before the parent form save method.
+                    This allows the nested form's save value to be available in the save method
+                    arguments keyed off of the key param.
         :type pre: bool
-        :param post: Flag to indicate that the nested form should be processed after the parent form save method. This
-        allows the parent form's save value to be available in the post save method arguments.
+
+        :param post: Flag to indicate that the nested form should be processed after the parent form save method.
+                    This allows the parent form's save value to be available in the post save method arguments.
         :type post: bool
+
+        :param error_messages: Any error messages to override. This should be a multi dict with the top
+                               level being the field name and its value being a dictionary of error_type => message
+        :type error_messages: dict
         """
 
         # Store all the properties onto the class
@@ -43,20 +65,28 @@ class NestedFormConfig(object):
         self.required_key = required_key
         self.pre = pre
         self.post = post
-        self.error_messages = error_messages
+        self.error_messages = error_messages or {}
         self.instance = None
 
         # Assert that we have a class and key objects
         assert self.cls
         assert self.key
 
-    def set_instance(self, *args, **kwargs):
+    def set_instance(self, base_form, *args, **kwargs):
         """
         Set the instance of the created form
         """
 
         # Create the instance with the passed arguments
         self.instance = self.cls(*args, **kwargs)
+
+        # Add the base form as an attribute onto the nested form
+        setattr(self.instance, 'nested_form_parent', base_form)
+
+        # Apply any custom error messages
+        for field_name, messages in self.error_messages.items():
+            if field_name in self.instance.fields:
+                self.instance.fields[field_name].error_messages.update(messages)
 
 
 class NestedFormMixin(object):
@@ -192,12 +222,13 @@ class NestedFormMixin(object):
                     nested_form_config=form,
                     args=[],
                     kwargs={},
-                    base_form_args=[],
-                    base_form_kwargs={}
+                    base_form_args=args,
+                    base_form_kwargs=kwargs
                 )
 
                 # Call the save method of the nested form
-                response = form.instance.save(*nested_form_args, **nested_form_kwargs)
+                # We assume all post save forms to assume they are nested
+                response = form.instance.save(*nested_form_args, **nested_form_kwargs, **responses)
 
                 # Store the response
                 responses[form.key] = response
