@@ -227,8 +227,7 @@ class NestedFormMixin(object):
                 )
 
                 # Call the save method of the nested form
-                # We assume all post save forms to assume they are nested
-                response = form.instance.save(*nested_form_args, **nested_form_kwargs, **responses)
+                response = form.instance.save(*nested_form_args, **nested_form_kwargs)
 
                 # Store the response
                 responses[form.key] = response
