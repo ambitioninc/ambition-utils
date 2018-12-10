@@ -99,12 +99,17 @@ class NestedFormMixin(object):
         # Call the parent
         super(NestedFormMixin, self).__init__(*args, **kwargs)
 
+        # Make a copy of the original data because we will be manipulating it and
+        # potentially adding additional keys from our nested forms
+        self.data = deepcopy(self.data)
+
         # Assert that we have a save method
         if not hasattr(self, 'save'):
-            raise Exception('Base form must have a save method')
+            raise Exception('Base form must have a save method - {0}'.format(self.__class__))
 
         # Wrap the save method around the nested form save
-        self.save = self._nested_save(self.save)
+        self._save = self.save
+        self.save = self._nested_save(self._save)
 
         # Build a list of all nest form configs
         self.nested_forms = []
@@ -191,51 +196,53 @@ class NestedFormMixin(object):
         responses = {}
 
         # Save all pre-save forms and apply the results to the base form kwargs and nested form kwargs
-        for form in required_forms:
-            if form.pre:
-                # Get the args and kwargs for the nested form
-                nested_form_args, nested_form_kwargs = self.get_nested_form_save_args(
-                    nested_form_config=form,
-                    args=[],
-                    kwargs={},
+        for nested_form_config in required_forms:
+            if nested_form_config.pre:
+                responses = self._save_nested_form(
+                    nested_form_config=nested_form_config,
                     base_form_args=args,
                     base_form_kwargs=kwargs,
-                    form_responses=responses
+                    responses=responses
                 )
-
-                # Call the save method of the nested form
-                response = form.instance.save(*nested_form_args, **nested_form_kwargs)
-
-                # Store the response
-                responses[form.key] = response
 
         # Save the parent form and store the result under the save key
         responses['base'] = wrapped(*args, **kwargs, **responses)
 
         # Save all post-save forms
-        for form in required_forms:
-            if form.post:
-                # Get the args and kwargs for the nested form
-                nested_form_args, nested_form_kwargs = self.get_nested_form_save_args(
-                    nested_form_config=form,
-                    args=[],
-                    kwargs={},
+        for nested_form_config in required_forms:
+            if nested_form_config.post:
+                responses = self._save_nested_form(
+                    nested_form_config=nested_form_config,
                     base_form_args=args,
                     base_form_kwargs=kwargs,
-                    form_responses=responses
+                    responses=responses
                 )
-
-                # Call the save method of the nested form
-                response = form.instance.save(*nested_form_args, **nested_form_kwargs)
-
-                # Store the response
-                responses[form.key] = response
 
         # Call the save nested method
         self.save_nested(responses['base'], **responses)
 
         # Return the value from the parent form's save method
         return responses['base']
+
+    def _save_nested_form(self, nested_form_config, base_form_args, base_form_kwargs, responses):
+        # Get the args and kwargs for the nested form
+        nested_form_args, nested_form_kwargs = self.get_nested_form_save_args(
+            nested_form_config=nested_form_config,
+            args=[],
+            kwargs={},
+            base_form_args=base_form_args,
+            base_form_kwargs=base_form_kwargs,
+            form_responses=responses
+        )
+
+        # Call the save method of the nested form
+        response = nested_form_config.instance.save(*nested_form_args, **nested_form_kwargs)
+
+        # Store the response
+        responses[nested_form_config.key] = response
+
+        # Return the responses
+        return responses
 
     def save_nested(self, response, **kwargs):
         """
