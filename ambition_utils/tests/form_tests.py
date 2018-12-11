@@ -65,9 +65,12 @@ class BadParentFormExistingField(NestedFormMixin, forms.Form):
     ]
 
     # Duplicate form field from nested
-    three = forms.CharField(error_messages={
+    nested_form_1 = forms.CharField(error_messages={
         'required': 'Three is required'
     })
+
+    def save(self):  # pragma: no cover
+        pass
 
 
 class ParentForm(NestedFormMixin, forms.Form):
@@ -78,6 +81,14 @@ class ParentForm(NestedFormMixin, forms.Form):
             required=False,
             required_key='nested_form_1_required',
             pre=True,
+            error_messages={
+                'three': {
+                    'required': 'Nested three is required'
+                },
+                'bad': {
+                    'required': 'Not required'
+                }
+            }
         ),
         NestedFormConfig(
             cls=NestedForm2,
@@ -118,7 +129,15 @@ class ParentForm(NestedFormMixin, forms.Form):
         # Return the updated args
         return args, kwargs
 
-    def get_nested_form_save_args(self, nested_form_config, args, kwargs, base_form_args, base_form_kwargs):
+    def get_nested_form_save_args(
+        self,
+        nested_form_config,
+        args,
+        kwargs,
+        base_form_args,
+        base_form_kwargs,
+        form_responses
+    ):
         if nested_form_config.key == 'nested_form_1':
             kwargs.update({
                 'number': 10,
@@ -193,7 +212,7 @@ class FormWithOptional(NestedFormMixin, forms.Form):
         # Return the updated args
         return args, kwargs
 
-    def save(self):
+    def save(self):  # pragma: no cover
         return 'saved'
 
 
@@ -254,7 +273,7 @@ class NestedFormMixinUnitTest(TestCase):
             (['1'], {'one': 'one'})
         )
 
-    def get_nested_form_save_args(self):
+    def test_get_nested_form_save_args(self):
         """
         Checks return value of save args method
         """
@@ -265,7 +284,8 @@ class NestedFormMixinUnitTest(TestCase):
                 args=['1'],
                 kwargs={'one': 'one'},
                 base_form_args=[],
-                base_form_kwargs={}
+                base_form_kwargs={},
+                form_responses={}
             ),
             (['1'], {'one': 'one'})
         )
@@ -293,7 +313,7 @@ class NestedFormMixinUnitTest(TestCase):
         class ParentForm1(NestedFormMixin, forms.Form):
             the_key = forms.BooleanField(required=False)
 
-            def save(self):
+            def save(self):  # pragma: no cover
                 return 'saved'
 
         # Required in config
@@ -366,7 +386,7 @@ class NestedFormMixinTest(TestCase):
                 NestedFormConfig(cls=Form1, key='two')
             ]
 
-            def save(self):
+            def save(self):  # pragma: no cover
                 return 'saved'
 
         # Assert we raise a validation error from the two forms without a prefix
@@ -379,6 +399,8 @@ class NestedFormMixinTest(TestCase):
         The second optional form has a field prefix and provides the required field,
         so it should not cause an additional validation error.
         """
+
+        # Setup the data
         data = {
             'nested_form_1_required': '1',
             'nested_form_2_required': '1',
@@ -386,9 +408,18 @@ class NestedFormMixinTest(TestCase):
             'optional_2_seven': 'good'
         }
 
+        # Create the form
         form = ParentForm(data=data)
+
+        # Assert that the from is invalid
         self.assertFalse(form.is_valid())
         self.assertEqual(len(form.errors), 3)
+
+        # Assert that we properly override our error message
+        self.assertEqual(
+            form.errors['nested_form_1'],
+            ['Nested three is required']
+        )
 
     def test_optional_form_flag_false(self):
         """
