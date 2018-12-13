@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+0.8.0
+-----
+* Refactored nested forms to simplify the api and make it more robust
+
+BREAKING CHANGES (NestedFormMixin)
+
+* No longer calls `form_save`. The base form and all mixin forms are required to have a `save` method
+* Renamed `get_pre_save_method_kwargs` and `get_post_save_method_kwargs` to `get_nested_form_save_args`
+* Removed `NestedModelFormMixin`, please use `NestedFormMixin` for all types of forms
+
 0.6.1
 -----
 * Fixed bug with rrule future occurrences using time zones ahead of UTC

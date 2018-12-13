@@ -1,3 +1,4 @@
+celery
 coverage
 coveralls
 django-nose
