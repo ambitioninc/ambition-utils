@@ -2,10 +2,10 @@ import tempfile
 import os
 from django.test import TestCase
 from ambition_utils.tests.models import FakeModel
-from ambition_utils.sql import StringSQL, FileSQL
+from ambition_utils.sql import StringSQL, FileSQL, queryset_to_sql
 
 
-class SQL(TestCase):
+class TestSQL(TestCase):
     def setUp(self):
         self.simple_query = 'SELECT * FROM tests_fakemodel;'
         self.param_query = 'SELECT * FROM tests_fakemodel WHERE name=%(name)s;'
@@ -65,3 +65,23 @@ class SQL(TestCase):
             sql = FileSQL(rel_path, path_is_relative=True)
             df = sql.to_dataframe()
             self.assertEqual(set(df.name), {'n_1', 'n_2', 'n_3'})
+
+    def test_queryset_to_sql(self):
+        # Build a query
+        qs = FakeModel.objects.order_by('name').values('name')
+
+        # Get the postgres sql for that query
+        query = queryset_to_sql(qs)
+
+        # Run the postgres sql
+        sql = StringSQL(query)
+        sql_recs = sql.as_dicts()
+
+        # Now run the acutal query
+        qs_recs = list(qs)
+
+        # Make sure they are the same
+        self.assertEqual(
+            [r['name'] for r in sql_recs],
+            [r['name'] for r in qs_recs],
+        )
