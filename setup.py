@@ -17,27 +17,12 @@ def get_version():
         raise RuntimeError('Unable to find version string in {0}.'.format(VERSION_FILE))
 
 
-install_requires = [
-    'ambition-django-timezone-field>=2.0.1',
-    'Django>=1.11',
-    'pandas>=0.21.0',
-    'python-dateutil>=2.4.2',
-    'fleming>=0.4.6',
-    'django-manager-utils>=0.13.1',
-    'pytz>=2015.6',
-    'six',
-    'tdigest',
-    'celery',
-]
+def get_lines(file_path):
+    return open(file_path, 'r').read().split('\n')
 
-tests_require = [
-    'django-nose>=1.4',
-    'django-dynamic-fixture',
-    'freezegun',
-    'mock',
-    'psycopg2',
-    'coverage',
-]
+
+install_requires = get_lines('requirements/requirements.txt')
+tests_require = get_lines('requirements/requirements-testing.txt')
 
 
 setup(

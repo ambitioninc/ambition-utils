@@ -138,7 +138,7 @@ class FileSQL(SQLBase):
     def __init__(
             self,
             path_to_sql_file: str,
-            path_is_relative: bool =True
+            path_is_relative: bool = True
     ) -> None:
         """
 
