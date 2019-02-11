@@ -6,6 +6,27 @@ from django.db.utils import ProgrammingError
 from typing import Dict, List, Tuple, Any
 
 
+def queryset_to_sql(queryset):
+    """
+    Transform a queryset into pretty sql that can be copy-pasted directly
+    into pg-admin
+    """
+    # Do imports here to avoid dependencies
+    import sqlparse
+    from django.db import connection
+
+    # Compile the query to python db api
+    sql, sql_params = queryset.query.get_compiler(using=queryset.db).as_sql()
+
+    # Translate the python query spec into a postgres query
+    with connection.cursor() as cur:
+        query = cur.mogrify(sql, sql_params)
+
+    # Make the query pretty and return it
+    query = sqlparse.format(query, reindent=True, keyword_case='upper')
+    return query
+
+
 class SQLBase(object):
 
     def __init__(self):
