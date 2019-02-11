@@ -8,7 +8,8 @@ from typing import Dict, List, Tuple, Any
 
 def queryset_to_sql(queryset):
     """
-    Transform a queryset into sql that is runnable in postgres
+    Transform a queryset into pretty sql that can be copy-pasted directly
+    into pg-admin
     """
     # Do imports here to avoid dependencies
     import sqlparse
