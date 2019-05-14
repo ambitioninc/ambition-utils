@@ -217,13 +217,16 @@ class RRule(models.Model):
         else:
             # This is an existing rrule object so check if the start time is different but still greater than now
             next_occurrence = self.get_rrule()[0]
+
+            # Convert back to utc before saving
+            next_occurrence = self.convert_to_utc(next_occurrence)
             now = datetime.utcnow()
             if next_occurrence != self.next_occurrence and next_occurrence > now:
                 self.next_occurrence = next_occurrence
 
         # Serialize the datetime objects if they exist
-        if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
-            self.rrule_params['dtstart'] = self.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
+        # if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
+        #     self.rrule_params['dtstart'] = self.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
 
         if self.rrule_params.get('until') and hasattr(self.rrule_params.get('until'), 'date'):
             self.rrule_params['until'] = self.rrule_params['until'].strftime('%Y-%m-%d %H:%M:%S')
