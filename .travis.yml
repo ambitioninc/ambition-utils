@@ -17,6 +17,9 @@ addons:
   postgresql: '9.6'
 
 matrix:
+  exclude:
+    - { python: "3.7", env: DJANGO=2.0 }
+
   include:
     - { python: "3.6", env: TOXENV=flake8 }
 
