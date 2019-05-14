@@ -226,7 +226,11 @@ class RRule(models.Model):
 
         # Serialize the datetime objects if they exist
         if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
+            print('in the block')
             self.rrule_params['dtstart'] = self.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            print('not in the block')
+        print('save with', type(self.rrule_params['dtstart']))
 
         if self.rrule_params.get('until') and hasattr(self.rrule_params.get('until'), 'date'):
             self.rrule_params['until'] = self.rrule_params['until'].strftime('%Y-%m-%d %H:%M:%S')
