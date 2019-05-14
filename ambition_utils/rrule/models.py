@@ -225,8 +225,8 @@ class RRule(models.Model):
                 self.next_occurrence = next_occurrence
 
         # Serialize the datetime objects if they exist
-        # if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
-        #     self.rrule_params['dtstart'] = self.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
+        if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
+            self.rrule_params['dtstart'] = self.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
 
         if self.rrule_params.get('until') and hasattr(self.rrule_params.get('until'), 'date'):
             self.rrule_params['until'] = self.rrule_params['until'].strftime('%Y-%m-%d %H:%M:%S')
