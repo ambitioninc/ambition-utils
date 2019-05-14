@@ -8,14 +8,13 @@ python:
 
 env:
   matrix:
-    - DJANGO=1.11
     - DJANGO=2.0
     - DJANGO=2.1
     - DJANGO=2.2
     - DJANGO=master
 
 addons:
-  postgresql: '9.5'
+  postgresql: '9.6'
 
 matrix:
   include:
