@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime
 
 import pytz
@@ -100,7 +101,7 @@ class RRule(models.Model):
         The dtstart param will be converted to local time if it is set.
         :rtype: rrule
         """
-        params = self.rrule_params
+        params = copy.deepcopy(self.rrule_params)
 
         # Convert next scheduled from utc back to time zone
         if params.get('dtstart') and not hasattr(params.get('dtstart'), 'date'):
@@ -214,6 +215,15 @@ class RRule(models.Model):
 
             # Convert back to utc before saving
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
+        else:
+            # This is an existing rrule object so check if the start time is different but still greater than now
+            next_occurrence = self.get_rrule()[0]
+
+            # Convert back to utc before saving
+            next_occurrence = self.convert_to_utc(next_occurrence)
+            now = datetime.utcnow()
+            if next_occurrence != self.next_occurrence and next_occurrence > now:
+                self.next_occurrence = next_occurrence
 
         # Serialize the datetime objects if they exist
         if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
@@ -223,4 +233,4 @@ class RRule(models.Model):
             self.rrule_params['until'] = self.rrule_params['until'].strftime('%Y-%m-%d %H:%M:%S')
 
         # Call the parent save method
-        super(RRule, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
