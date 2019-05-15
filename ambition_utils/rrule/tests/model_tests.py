@@ -587,3 +587,48 @@ class RRuleTest(TestCase):
         rule.update_next_occurrence()
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 1, 1))
         self.assertEqual(rule.next_occurrence, datetime.datetime(2017, 1, 2))
+
+    def test_save_existing_update_next_occurrence(self):
+        """
+        When saving an existing rrule model, make sure that the next occurrence is updated when the
+        next occurrence has not yet occurred, and the next occurrence is not updated if the start time
+        is before the current date
+        """
+        params = {
+            'freq': rrule.DAILY,
+            'dtstart': datetime.datetime(2017, 1, 1),
+        }
+
+        with freeze_time('1-1-2018'):
+            rule = RRule.objects.create(
+                rrule_params=params,
+                occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+                time_zone=pytz.timezone('US/Eastern'),
+            )
+
+            self.assertEqual(rule.last_occurrence, None)
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2017, 1, 1, 5))
+
+        # Save the rrule with a current time before the first occurrence
+        with freeze_time('1-1-2016'):
+
+            # Change the start date to a future date
+            rule.rrule_params['dtstart'] = datetime.datetime(2018, 1, 1)
+            rule.save()
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2018, 1, 1, 5))
+
+            # Change the start date to a previous date that is still after the current date
+            rule.rrule_params['dtstart'] = datetime.datetime(2016, 2, 1)
+            rule.save()
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
+
+            # Try setting the start time to a previous date before the current date and make sure it
+            # does not change
+            rule.rrule_params['dtstart'] = datetime.datetime(2015, 12, 1)
+            rule.save()
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
+
+            rule.rrule_params['dtstart'] = datetime.datetime(2015, 12, 1)
+            rule.rrule_params['dtstart'] = rule.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
+            rule.save()
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
