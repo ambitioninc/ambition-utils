@@ -225,7 +225,7 @@ class RRule(models.Model):
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
         else:
             # Get the current time or go off the specified current time
-            current_time = current_time or datetime.utcnow()
+            current_time = current_time or self.last_occurrence or datetime.utcnow()
 
             # Next occurrence is in utc here
             next_occurrence = self.get_next_occurrence(last_occurrence=current_time)

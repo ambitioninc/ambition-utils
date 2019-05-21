@@ -623,12 +623,12 @@ class RRuleTest(TestCase):
             self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
 
             # Try setting the start time to a previous date before the current date and make sure it
-            # does not change
+            # gets set to the first occurrence after today
             rule.rrule_params['dtstart'] = datetime.datetime(2015, 12, 1)
             rule.save()
-            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
 
             rule.rrule_params['dtstart'] = datetime.datetime(2015, 12, 1)
             rule.rrule_params['dtstart'] = rule.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
             rule.save()
-            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
