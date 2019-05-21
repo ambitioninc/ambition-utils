@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+1.0.1
+-----
+* Added an optional current_time option to rrule save. This allows the next recurrence to be set after the specified current_time rather than using the first date based on dtstart.
+
+1.0.0
+-----
+* Django 2.1, Django 2.2, Python 3.7 tests
+* Dropped Django 1.11, Python < 3.6
+* Allow modifying rrule next occurrence date
+
 0.8.0
 -----
 * Refactored nested forms to simplify the api and make it more robust
