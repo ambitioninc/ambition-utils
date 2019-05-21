@@ -207,6 +207,14 @@ class RRule(models.Model):
 
         # Check if this is a new rrule object
         if self.pk is None:
+            # Convert next scheduled from utc back to time zone
+            if self.rrule_params.get('dtstart') and not hasattr(self.rrule_params.get('dtstart'), 'date'):
+                self.rrule_params['dtstart'] = parser.parse(self.rrule_params['dtstart'])
+
+            # Convert until date from utc back to time zone
+            if self.rrule_params.get('until') and not hasattr(self.rrule_params.get('until'), 'date'):
+                self.rrule_params['until'] = parser.parse(self.rrule_params['until'])
+
             # Convert the scheduled time to utc so getting the rrule
             self.next_occurrence = self.convert_to_utc(self.rrule_params['dtstart'])
 
