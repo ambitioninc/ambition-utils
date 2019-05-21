@@ -670,4 +670,3 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.next_occurrence, datetime.datetime(2019, 5, 1, 4))
         self.assertEqual(rule.rrule_params['dtstart'], '2019-05-01 00:00:00')
         self.assertEqual(rule.rrule_params['until'], '2019-06-01 00:00:00')
-
