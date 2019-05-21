@@ -198,7 +198,7 @@ class RRule(models.Model):
 
         return dt
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, current_time=None, **kwargs):
         """
         Saves the rrule model to the database. If this is a new object, the first next_scheduled time is
         determined and set. The `dtstart` and `until` objects will be safely encoded as strings if they are
@@ -216,7 +216,7 @@ class RRule(models.Model):
                 self.rrule_params['until'] = parser.parse(self.rrule_params['until'])
 
             # Convert the scheduled time to utc so getting the rrule
-            self.next_occurrence = self.convert_to_utc(self.rrule_params['dtstart'])
+            # self.next_occurrence = self.convert_to_utc(self.rrule_params['dtstart'])
 
             # Get the first scheduled time according to the rrule (this converts from utc back to local time)
             self.next_occurrence = self.get_rrule()[0]
@@ -224,13 +224,14 @@ class RRule(models.Model):
             # Convert back to utc before saving
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
         else:
-            # This is an existing rrule object so check if the start time is different but still greater than now
-            next_occurrence = self.get_rrule()[0]
+            # Get the current time or go off the specified current time
+            current_time = current_time or datetime.utcnow()
 
-            # Convert back to utc before saving
-            next_occurrence = self.convert_to_utc(next_occurrence)
-            now = datetime.utcnow()
-            if next_occurrence != self.next_occurrence and next_occurrence > now:
+            # Next occurrence is in utc here
+            next_occurrence = self.get_next_occurrence(last_occurrence=current_time)
+
+            # Check if the start time is different but still greater than now
+            if next_occurrence != self.next_occurrence and next_occurrence > current_time:
                 self.next_occurrence = next_occurrence
 
         # Serialize the datetime objects if they exist
