@@ -632,3 +632,42 @@ class RRuleTest(TestCase):
             rule.rrule_params['dtstart'] = rule.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
             rule.save()
             self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
+
+    def test_save_with_datetimes(self):
+        """
+        Verifies that the save method can work with dtstart and until params as datetime objects
+        """
+        params = {
+            'freq': rrule.DAILY,
+            'dtstart': datetime.datetime(2019, 5, 1),
+            'until': datetime.datetime(2019, 6, 1),
+        }
+        rule = RRule.objects.create(
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            time_zone=pytz.timezone('US/Eastern'),
+        )
+
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2019, 5, 1, 4))
+        self.assertEqual(rule.rrule_params['dtstart'], '2019-05-01 00:00:00')
+        self.assertEqual(rule.rrule_params['until'], '2019-06-01 00:00:00')
+
+    def test_save_with_strings(self):
+        """
+        Verifies that the save method can work with dtstart and until params as strings
+        """
+        params = {
+            'freq': rrule.DAILY,
+            'dtstart': '2019-05-01 00:00:00',
+            'until': '2019-06-01 00:00:00',
+        }
+        rule = RRule.objects.create(
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            time_zone=pytz.timezone('US/Eastern'),
+        )
+
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2019, 5, 1, 4))
+        self.assertEqual(rule.rrule_params['dtstart'], '2019-05-01 00:00:00')
+        self.assertEqual(rule.rrule_params['until'], '2019-06-01 00:00:00')
+
