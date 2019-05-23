@@ -198,7 +198,7 @@ class RRule(models.Model):
 
         return dt
 
-    def save(self, *args, current_time=None, **kwargs):
+    def save(self, *args, **kwargs):
         """
         Saves the rrule model to the database. If this is a new object, the first next_scheduled time is
         determined and set. The `dtstart` and `until` objects will be safely encoded as strings if they are

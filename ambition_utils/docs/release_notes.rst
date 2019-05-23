@@ -3,7 +3,7 @@ Release Notes
 
 1.0.1
 -----
-* Added an optional current_time option to rrule save. This allows the next recurrence to be set after the specified current_time rather than using the first date based on dtstart.
+* Reverted save existing recurrence functionality to not make assumptions about the next occurrence
 
 1.0.0
 -----
