@@ -631,8 +631,14 @@ class RRuleTest(TestCase):
             rule.save()
             self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
 
+            # Coverage to test the string dtstart
             rule.rrule_params['dtstart'] = datetime.datetime(2015, 12, 1)
             rule.rrule_params['dtstart'] = rule.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
+            rule.save()
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
+
+            # Refresh with date in past and make sure it is ignored
+            rule.refresh_next_occurrence(current_time=datetime.datetime(2014, 1, 1))
             rule.save()
             self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
 
