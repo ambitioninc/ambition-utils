@@ -614,21 +614,68 @@ class RRuleTest(TestCase):
 
             # Change the start date to a future date
             rule.rrule_params['dtstart'] = datetime.datetime(2018, 1, 1)
+            rule.refresh_next_occurrence()
             rule.save()
             self.assertEqual(rule.next_occurrence, datetime.datetime(2018, 1, 1, 5))
 
             # Change the start date to a previous date that is still after the current date
             rule.rrule_params['dtstart'] = datetime.datetime(2016, 2, 1)
+            rule.refresh_next_occurrence()
             rule.save()
             self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
 
             # Try setting the start time to a previous date before the current date and make sure it
-            # does not change
+            # gets set to the first occurrence after today
             rule.rrule_params['dtstart'] = datetime.datetime(2015, 12, 1)
+            rule.refresh_next_occurrence()
             rule.save()
-            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
 
+            # Coverage to test the string dtstart
             rule.rrule_params['dtstart'] = datetime.datetime(2015, 12, 1)
             rule.rrule_params['dtstart'] = rule.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
             rule.save()
-            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
+
+            # Refresh with date in past and make sure it is ignored
+            rule.refresh_next_occurrence(current_time=datetime.datetime(2014, 1, 1))
+            rule.save()
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
+
+    def test_save_with_datetimes(self):
+        """
+        Verifies that the save method can work with dtstart and until params as datetime objects
+        """
+        params = {
+            'freq': rrule.DAILY,
+            'dtstart': datetime.datetime(2019, 5, 1),
+            'until': datetime.datetime(2019, 6, 1),
+        }
+        rule = RRule.objects.create(
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            time_zone=pytz.timezone('US/Eastern'),
+        )
+
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2019, 5, 1, 4))
+        self.assertEqual(rule.rrule_params['dtstart'], '2019-05-01 00:00:00')
+        self.assertEqual(rule.rrule_params['until'], '2019-06-01 00:00:00')
+
+    def test_save_with_strings(self):
+        """
+        Verifies that the save method can work with dtstart and until params as strings
+        """
+        params = {
+            'freq': rrule.DAILY,
+            'dtstart': '2019-05-01 00:00:00',
+            'until': '2019-06-01 00:00:00',
+        }
+        rule = RRule.objects.create(
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            time_zone=pytz.timezone('US/Eastern'),
+        )
+
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2019, 5, 1, 4))
+        self.assertEqual(rule.rrule_params['dtstart'], '2019-05-01 00:00:00')
+        self.assertEqual(rule.rrule_params['until'], '2019-06-01 00:00:00')

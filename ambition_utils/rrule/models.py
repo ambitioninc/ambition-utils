@@ -198,6 +198,22 @@ class RRule(models.Model):
 
         return dt
 
+    def refresh_next_occurrence(self, current_time=None):
+        """
+        Sets the next occurrence date based on the current rrule param definition. The date will be after the
+        specified current_time or utcnow.
+        :param current_time: Optional datetime object to compute the next time from
+        """
+        # Get the current time or go off the specified current time
+        current_time = current_time or datetime.utcnow()
+
+        # Next occurrence is in utc here
+        next_occurrence = self.get_next_occurrence(last_occurrence=current_time)
+
+        # Check if the start time is different but still greater than now
+        if next_occurrence != self.next_occurrence and next_occurrence > datetime.utcnow():
+            self.next_occurrence = next_occurrence
+
     def save(self, *args, **kwargs):
         """
         Saves the rrule model to the database. If this is a new object, the first next_scheduled time is
@@ -207,23 +223,19 @@ class RRule(models.Model):
 
         # Check if this is a new rrule object
         if self.pk is None:
-            # Convert the scheduled time to utc so getting the rrule
-            self.next_occurrence = self.convert_to_utc(self.rrule_params['dtstart'])
+            # Convert next scheduled from utc back to time zone
+            if self.rrule_params.get('dtstart') and not hasattr(self.rrule_params.get('dtstart'), 'date'):
+                self.rrule_params['dtstart'] = parser.parse(self.rrule_params['dtstart'])
+
+            # Convert until date from utc back to time zone
+            if self.rrule_params.get('until') and not hasattr(self.rrule_params.get('until'), 'date'):
+                self.rrule_params['until'] = parser.parse(self.rrule_params['until'])
 
             # Get the first scheduled time according to the rrule (this converts from utc back to local time)
             self.next_occurrence = self.get_rrule()[0]
 
             # Convert back to utc before saving
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
-        else:
-            # This is an existing rrule object so check if the start time is different but still greater than now
-            next_occurrence = self.get_rrule()[0]
-
-            # Convert back to utc before saving
-            next_occurrence = self.convert_to_utc(next_occurrence)
-            now = datetime.utcnow()
-            if next_occurrence != self.next_occurrence and next_occurrence > now:
-                self.next_occurrence = next_occurrence
 
         # Serialize the datetime objects if they exist
         if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
