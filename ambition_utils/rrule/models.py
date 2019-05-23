@@ -198,6 +198,22 @@ class RRule(models.Model):
 
         return dt
 
+    def refresh_next_occurrence(self, current_time=None):
+        """
+        Sets the next occurrence date based on the current rrule param definition. The date will be after the
+        specified current_time or the last_occurrence or utcnow.
+        :param current_time: Optional datetime object to compute the next time from
+        """
+        # Get the current time or go off the specified current time
+        current_time = current_time or self.last_occurrence or datetime.utcnow()
+
+        # Next occurrence is in utc here
+        next_occurrence = self.get_next_occurrence(last_occurrence=current_time)
+
+        # Check if the start time is different but still greater than now
+        if next_occurrence != self.next_occurrence and next_occurrence > current_time:
+            self.next_occurrence = next_occurrence
+
     def save(self, *args, **kwargs):
         """
         Saves the rrule model to the database. If this is a new object, the first next_scheduled time is
