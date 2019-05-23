@@ -614,17 +614,20 @@ class RRuleTest(TestCase):
 
             # Change the start date to a future date
             rule.rrule_params['dtstart'] = datetime.datetime(2018, 1, 1)
+            rule.next_occurrence = rule.get_next_occurrence()
             rule.save()
             self.assertEqual(rule.next_occurrence, datetime.datetime(2018, 1, 1, 5))
 
             # Change the start date to a previous date that is still after the current date
             rule.rrule_params['dtstart'] = datetime.datetime(2016, 2, 1)
+            rule.next_occurrence = rule.get_next_occurrence()
             rule.save()
             self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 2, 1, 5))
 
             # Try setting the start time to a previous date before the current date and make sure it
             # gets set to the first occurrence after today
             rule.rrule_params['dtstart'] = datetime.datetime(2015, 12, 1)
+            rule.next_occurrence = rule.get_next_occurrence()
             rule.save()
             self.assertEqual(rule.next_occurrence, datetime.datetime(2016, 1, 1, 5))
 
