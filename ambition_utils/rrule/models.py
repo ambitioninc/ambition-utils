@@ -215,24 +215,11 @@ class RRule(models.Model):
             if self.rrule_params.get('until') and not hasattr(self.rrule_params.get('until'), 'date'):
                 self.rrule_params['until'] = parser.parse(self.rrule_params['until'])
 
-            # Convert the scheduled time to utc so getting the rrule
-            # self.next_occurrence = self.convert_to_utc(self.rrule_params['dtstart'])
-
             # Get the first scheduled time according to the rrule (this converts from utc back to local time)
             self.next_occurrence = self.get_rrule()[0]
 
             # Convert back to utc before saving
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
-        else:
-            # Get the current time or go off the specified current time
-            current_time = current_time or self.last_occurrence or datetime.utcnow()
-
-            # Next occurrence is in utc here
-            next_occurrence = self.get_next_occurrence(last_occurrence=current_time)
-
-            # Check if the start time is different but still greater than now
-            if next_occurrence != self.next_occurrence and next_occurrence > current_time:
-                self.next_occurrence = next_occurrence
 
         # Serialize the datetime objects if they exist
         if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
