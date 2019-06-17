@@ -30,7 +30,7 @@ REPEAT_BY_CHOICES = (
     ('DAY_OF_THE_WEEK_START', 'Day of the week counting from the beginning of the month'),
     ('DAY_OF_THE_WEEK_END', 'Day of the week counting backwards from the end of the month'),
     # ('FIRST_DAY_OF_MONTH', 'First day of Month'),
-    # ('LAST_DAY_OF_MONTH', 'Last day of Month'),
+    ('DAY_OF_THE_MONTH_END', 'Last day of Month'),
 )
 
 
@@ -196,6 +196,8 @@ class RecurrenceForm(forms.Form):
         if self.cleaned_data.get('freq') == rrule.MONTHLY:
             if self.cleaned_data.get('repeat_by') == 'DAY_OF_THE_MONTH':
                 params['bymonthday'] = start_datetime.day
+            elif self.cleaned_data.get('repeat_by') == 'DAY_OF_THE_MONTH_END':
+                params['bymonthday'] = -1
             else:
                 params['byweekday'] = self.cleaned_data['bynweekday'][0][0]
                 params['bysetpos'] = self.cleaned_data['bynweekday'][0][1]

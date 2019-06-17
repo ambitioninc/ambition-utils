@@ -291,6 +291,39 @@ class NestedRecurrenceFormTest(TestCase):
         self.assertEqual(rule[1], datetime.datetime(2017, 7, 4))
         self.assertEqual(rule[2], datetime.datetime(2017, 8, 4))
 
+    def test_monthly_last_day_of_month(self):
+        data = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': '6/4/2017',
+            'byhour': '0',
+            'time_zone': 'UTC',
+            'ends': RecurrenceEnds.NEVER,
+            'repeat_by': 'DAY_OF_THE_MONTH_END',
+        }
+        form = RecurrenceForm(data=data)
+
+        self.assertTrue(form.is_valid())
+
+        rrule_model = form.save()
+        rule = rrule_model.get_rrule()
+
+        self.assertEqual(rule[0], datetime.datetime(2017, 6, 30))
+        self.assertEqual(rule[1], datetime.datetime(2017, 7, 31))
+        self.assertEqual(rule[2], datetime.datetime(2017, 8, 31))
+        self.assertEqual(rule[3], datetime.datetime(2017, 9, 30))
+        self.assertEqual(rule[4], datetime.datetime(2017, 10, 31))
+        self.assertEqual(rule[5], datetime.datetime(2017, 11, 30))
+        self.assertEqual(rule[6], datetime.datetime(2017, 12, 31))
+        self.assertEqual(rule[7], datetime.datetime(2018, 1, 31))
+        self.assertEqual(rule[8], datetime.datetime(2018, 2, 28))
+        self.assertEqual(rule[9], datetime.datetime(2018, 3, 31))
+        self.assertEqual(rule[10], datetime.datetime(2018, 4, 30))
+        self.assertEqual(rule[11], datetime.datetime(2018, 5, 31))
+        self.assertEqual(rule[12], datetime.datetime(2018, 6, 30))
+        self.assertEqual(rule[24], datetime.datetime(2019, 6, 30))
+        self.assertEqual(rule[32], datetime.datetime(2020, 2, 29))
+
     def test_monthly_every_month_day_of_week_from_start_of_month(self):
         """
         Second Monday of each month
