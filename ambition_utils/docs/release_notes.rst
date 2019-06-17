@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+1.0.2
+-----
+* Added support for last day of month
+
 1.0.1
 -----
 * Reverted save existing recurrence functionality to not make assumptions about the next occurrence
