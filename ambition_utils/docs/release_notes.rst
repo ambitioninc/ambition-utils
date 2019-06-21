@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+1.0.3
+-----
+* Deep copy custom nested form error messages so it doesn't overwrite the parent class's error message
+
 1.0.2
 -----
 * Added support for last day of month
