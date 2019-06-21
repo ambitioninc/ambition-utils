@@ -421,6 +421,10 @@ class NestedFormMixinTest(TestCase):
             ['Nested three is required']
         )
 
+        # Make sure we didn't write over the base form class's error message
+        form = NestedForm1(10)
+        self.assertEqual(form.fields['three'].error_messages['required'], 'Three is required')
+
     def test_optional_form_flag_false(self):
         """
         Verifies an optional form is not required when its flag is false

@@ -80,6 +80,15 @@ class NestedFormConfig(object):
         # Create the instance with the passed arguments
         self.instance = self.cls(*args, **kwargs)
 
+        # Check if there are any custom error message overrides defined
+        if self.error_messages:
+
+            # Copy the error messages from the form class to the form instance so it doesn't alter the class
+            for field_name, field in self.instance.fields.items():
+                self.instance.fields[field_name].error_messages = deepcopy(
+                    self.instance.fields[field_name].error_messages
+                )
+
         # Apply any custom error messages
         for field_name, messages in self.error_messages.items():
             if field_name in self.instance.fields:
