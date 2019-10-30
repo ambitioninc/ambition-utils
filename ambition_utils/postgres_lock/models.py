@@ -11,7 +11,7 @@ class PostgresLock(models.Model):
 
     # The name of the lock
     name = models.CharField(
-        max_length=255,
+        max_length=512,
         unique=True,
         primary_key=True,
     )
