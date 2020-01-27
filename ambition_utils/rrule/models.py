@@ -17,7 +17,8 @@ class RRuleManager(models.Manager):
     Custom manager for rrule objects
     """
     def update_next_occurrences(self, rrule_objects=None):
-        rrule_objects = rrule_objects or self.get_queryset()
+        if rrule_objects is None:
+            return
         for rrule_object in rrule_objects:
             rrule_object.update_next_occurrence(save=False)
 

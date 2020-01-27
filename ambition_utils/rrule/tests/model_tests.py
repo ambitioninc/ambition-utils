@@ -48,6 +48,81 @@ class HandlerThree(OccurrenceHandler):
 
 class RRuleManagerTest(TestCase):
 
+    def test_update_next_occurrences(self):
+        """
+        Make sure that the correct occurrences are selected
+        """
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        rrule1 = G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
+
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        rrule2 = G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
+
+        self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 2))
+
+        # Progress no rules
+        with freeze_time('1-3-2017'):
+            RRule.objects.update_next_occurrences()
+
+        rrule1.refresh_from_db()
+        rrule2.refresh_from_db()
+
+        # Both should be progressed
+        self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 2))
+
+        # Progress all rules
+        with freeze_time('1-3-2017'):
+            RRule.objects.update_next_occurrences([rrule1, rrule2])
+
+        rrule1.refresh_from_db()
+        rrule2.refresh_from_db()
+
+        # Both should be progressed
+        self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 3))
+        self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 3))
+
+        # Progress specific rrules
+        with freeze_time('1-4-2017'):
+            RRule.objects.update_next_occurrences(rrule_objects=[rrule1])
+
+        rrule1.refresh_from_db()
+        rrule2.refresh_from_db()
+
+        # One should be progressed
+        self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 4))
+        self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 3))
+
+        # Make sure neither are progressed with passing an empty list
+        with freeze_time('1-5-2017'):
+            RRule.objects.update_next_occurrences(rrule_objects=[])
+
+        rrule1.refresh_from_db()
+        rrule2.refresh_from_db()
+
+        # One should be progressed
+        self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 4))
+        self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 3))
+
     @freeze_time('1-1-2017')
     def test_run(self):
         """
