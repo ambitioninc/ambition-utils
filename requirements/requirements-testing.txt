@@ -1,5 +1,5 @@
 celery==4.2.1
-coverage==4.5.1coverage
+coverage==4.5.1
 coveralls
 django-nose==1.4.5
 django-dynamic-fixture==2.0.0
