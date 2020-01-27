@@ -79,9 +79,20 @@ class RRuleManagerTest(TestCase):
         self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 2))
         self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 2))
 
-        # Progress both rules
+        # Progress no rules
         with freeze_time('1-3-2017'):
             RRule.objects.update_next_occurrences()
+
+        rrule1.refresh_from_db()
+        rrule2.refresh_from_db()
+
+        # Both should be progressed
+        self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 2))
+
+        # Progress all rules
+        with freeze_time('1-3-2017'):
+            RRule.objects.update_next_occurrences([rrule1, rrule2])
 
         rrule1.refresh_from_db()
         rrule2.refresh_from_db()

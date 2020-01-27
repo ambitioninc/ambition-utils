@@ -18,7 +18,7 @@ class RRuleManager(models.Manager):
     """
     def update_next_occurrences(self, rrule_objects=None):
         if rrule_objects is None:
-            rrule_objects = self.get_queryset()
+            return
         for rrule_object in rrule_objects:
             rrule_object.update_next_occurrence(save=False)
 
