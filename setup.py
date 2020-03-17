@@ -51,6 +51,6 @@ setup(
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require={'dev': tests_require},
-    test_suite='run_tests.run_tests',
+    test_suite='run_tests.run',
     include_package_data=True,
 )
