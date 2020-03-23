@@ -276,6 +276,7 @@ class ParentOfFileInputs(NestedFormMixin, forms.Form):
     def save(self, *args, **kwargs):
         return 'ABC'
 
+
 class NestedFormMixinUnitTest(TestCase):
     """
     Unit tests for the nested form mixin
