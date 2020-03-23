@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from mock import MagicMock
 
@@ -53,6 +54,20 @@ class OptionalForm(NestedFormMixin, forms.Form):
 
     def save(self):
         return 'optional value'
+
+
+class FileInputNestedForm(NestedFormMixin, forms.Form):
+    primary = forms.FileField(
+        error_messages={'required': 'File is required'},
+        required=True
+    )
+
+    backup = forms.FileField(
+        required=False
+    )
+
+    def save(self, *args, **kwargs):
+        return 'ABC'
 
 
 class BadParentFormExistingField(NestedFormMixin, forms.Form):
@@ -243,6 +258,23 @@ class ModelFormWithNestedForms(NestedFormMixin, forms.ModelForm):
     def save(self, commit=True, **kwargs):
         return super().save(commit=True)
 
+
+class ParentOfFileInputs(NestedFormMixin, forms.Form):
+    nested_form_configs = [
+        NestedFormConfig(
+            cls=FileInputNestedForm,
+            key='file_input_nested_form',
+            required=True,
+            post=True,
+        ),
+    ]
+
+    label = forms.CharField(error_messages={
+        'required': 'Label is required'
+    })
+
+    def save(self, *args, **kwargs):
+        return 'ABC'
 
 class NestedFormMixinUnitTest(TestCase):
     """
@@ -521,3 +553,32 @@ class NestedModelFormMixinTest(TestCase):
 
         # Assert the model was saved correctly
         self.assertEqual(fake_model.name, 'just a fake name')
+
+
+class NestedFileInputFormTest(TestCase):
+
+    def test_parent_validity(self):
+        """
+        Verifies that a form with nested forms containing FileField is valid when valid and not when not
+        """
+
+        data = {
+            'label': 'Secret Plans',
+        }
+
+        files = {
+            'primary': SimpleUploadedFile('primary_plan.txt', 'ssshhhh'.encode()),
+            'backup': SimpleUploadedFile('primary_plan.txt', 'ssshhhh'.encode()),
+        }
+
+        # Create the form without files
+        form = ParentOfFileInputs(data=data, files={})
+
+        # Assert the form is not valid
+        self.assertFalse(form.is_valid())
+
+        # Create the form with files
+        form = ParentOfFileInputs(data=data, files=files)
+
+        # Assert the form is valid
+        self.assertTrue(form.is_valid())
