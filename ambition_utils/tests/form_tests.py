@@ -582,3 +582,9 @@ class NestedFileInputFormTest(TestCase):
 
         # Assert the form is valid
         self.assertTrue(form.is_valid())
+
+        # Save the form
+        return_value = form.save()
+
+        # Assert that we have the proper return value
+        self.assertEqual(return_value, 'ABC')
