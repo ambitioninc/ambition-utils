@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+1.1.2
+-----
+* Fixed submitted from from being excluded in nested_form_kwargs
+* Renamed run_tests
+* Updated Django version pinning
+
 1.1.1
 -----
 * Fix rrule queryset to correctly limit rrule objects to progress
