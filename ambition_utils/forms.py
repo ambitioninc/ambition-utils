@@ -147,7 +147,8 @@ class NestedFormMixin(object):
             # Build the nested form args, kwargs to init the nested form with
             nested_form_args = []
             nested_form_kwargs = {
-                'data': {}
+                'data': {},
+                'files': {},
             }
 
             # Get the prefix
@@ -156,16 +157,17 @@ class NestedFormMixin(object):
             # Set the prefix value to the form config prefix
             form_prefixes[nested_form_config.cls] = nested_form_config.field_prefix
 
-            # Process the form field keys when there is a prefix defined on the nested form
-            for key, value in deepcopy(self.data).items():
-                # Check if the prefix is there to replace
-                to_replace = '{0}_'.format(prefix)
-                if key.startswith(to_replace):
-                    # Update the key
-                    key = key.replace(to_replace, '')
+            # Process the form field and file keys when there is a prefix defined on the nested form
+            for label, data in (('data', self.data), ('files', self.files)):
+                for key, value in deepcopy(data).items():
+                    # Check if the prefix is there to replace
+                    to_replace = '{0}_'.format(prefix)
+                    if key.startswith(to_replace):
+                        # Update the key
+                        key = key.replace(to_replace, '')
 
-                # Apply the value to the data dict
-                nested_form_kwargs['data'][key] = value
+                    # Apply the value to the data dict
+                    nested_form_kwargs[label][key] = value
 
             # Get the nested form config init arguments
             nested_form_args, nested_form_kwargs = self.get_nested_form_init_args(
