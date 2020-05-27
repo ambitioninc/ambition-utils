@@ -207,6 +207,30 @@ class RRuleManagerTest(TestCase):
 
 class RRuleTest(TestCase):
 
+    def test_get_time_zone_object_none(self):
+        """
+        Should return utc when time zone is null
+        """
+        rrule = RRule()
+        rrule.time_zone = None
+        self.assertEqual(rrule.get_time_zone_object(), pytz.utc)
+
+    def test_get_time_zone_object_str(self):
+        """
+        Should return an object when time zone is a string
+        """
+        rrule = RRule()
+        rrule.time_zone = 'UTC'
+        self.assertEqual(rrule.get_time_zone_object(), pytz.utc)
+
+    def test_get_time_zone_object(self):
+        """
+        Should return the object when time zone is an object
+        """
+        rrule = RRule()
+        rrule.time_zone = pytz.utc
+        self.assertEqual(rrule.get_time_zone_object(), pytz.utc)
+
     def test_get_next_occurrence_first_is_occurrence(self):
         """
         First occurrence should be the dtstart
