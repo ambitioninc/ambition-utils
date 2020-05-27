@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+1.1.3
+-----
+* Fixed time zone object access in rrule model
+
 1.1.2
 -----
 * Fixed submitted from from being excluded in nested_form_kwargs

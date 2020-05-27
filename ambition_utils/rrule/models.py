@@ -88,6 +88,15 @@ class RRule(models.Model):
     # Custom object manager
     objects = RRuleManager()
 
+    def get_time_zone_object(self):
+        if self.time_zone is None:
+            return pytz.utc
+
+        if isinstance(self.time_zone, str):
+            return pytz.timezone(self.time_zone)
+
+        return self.time_zone
+
     def get_occurrence_handler_class_instance(self):
         """
         Gets an instance of the occurrence handler class associated with this rrule
@@ -132,7 +141,7 @@ class RRule(models.Model):
         rule = self.get_rrule()
 
         # Convert to local time zone for getting next occurrence, otherwise time zones ahead of utc will return the same
-        last_occurrence = fleming.convert_to_tz(last_occurrence, self.time_zone, return_naive=True)
+        last_occurrence = fleming.convert_to_tz(last_occurrence, self.get_time_zone_object(), return_naive=True)
 
         # Generate the next occurrence
         next_occurrence = rule.after(last_occurrence)
@@ -192,7 +201,7 @@ class RRule(models.Model):
         :type dt: datetime
         """
         # Add timezone info
-        dt = fleming.attach_tz_if_none(dt, self.time_zone)
+        dt = fleming.attach_tz_if_none(dt, self.get_time_zone_object())
 
         # Convert to utc
         dt = fleming.convert_to_tz(dt, pytz.utc, return_naive=True)
