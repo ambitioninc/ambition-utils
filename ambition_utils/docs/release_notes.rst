@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+1.2.0
+-----
+* Added support for passing an rrule object id in the recurrence form
+
 1.1.3
 -----
 * Fixed time zone object access in rrule model
