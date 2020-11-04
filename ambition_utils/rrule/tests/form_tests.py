@@ -94,6 +94,7 @@ class NestedRecurrenceFormTest(TestCase):
             'count': None,
             'repeat_by': '',
             'until': None,
+            'rrule': None,
         })
 
     def test_missing_after_occurrences_count(self):
