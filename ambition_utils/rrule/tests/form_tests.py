@@ -2,9 +2,11 @@ import datetime
 
 from dateutil import rrule
 from django.test import TestCase
+from freezegun import freeze_time
 
 from ambition_utils.rrule.constants import RecurrenceEnds
 from ambition_utils.rrule.forms import RecurrenceForm
+from ambition_utils.rrule.models import RRule
 
 
 class NestedRecurrenceFormTest(TestCase):
@@ -92,6 +94,7 @@ class NestedRecurrenceFormTest(TestCase):
             'count': None,
             'repeat_by': '',
             'until': None,
+            'rrule': None,
         })
 
     def test_missing_after_occurrences_count(self):
@@ -416,3 +419,44 @@ class NestedRecurrenceFormTest(TestCase):
         )
 
         self.assertEqual(rrule_model.occurrence_handler_path, 'ambition_utils.rrule.handler.OccurrenceHandler')
+
+    @freeze_time(datetime.datetime(2017, 6, 4))
+    def test_update_from_id_field(self):
+        """
+        Verifies that an existing rrule object will get updated from passing an id in the form data and that
+        the next recurrence is refreshed
+        """
+        data = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': '6/4/2017',
+            'byhour': '0',
+            'time_zone': 'UTC',
+            'ends': RecurrenceEnds.NEVER,
+        }
+        form = RecurrenceForm(data=data)
+        self.assertTrue(form.is_valid())
+        rrule_model = form.save(
+            occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
+        )
+        self.assertEqual(RRule.objects.count(), 1)
+        self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 4))
+
+        # Handle update
+        data = {
+            'rrule': str(rrule_model.id),
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': '6/7/2017',
+            'byhour': '0',
+            'time_zone': 'UTC',
+            'ends': RecurrenceEnds.NEVER,
+        }
+
+        form = RecurrenceForm(data=data)
+        self.assertTrue(form.is_valid())
+        rrule_model = form.save(
+            occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
+        )
+        self.assertEqual(RRule.objects.count(), 1)
+        self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
