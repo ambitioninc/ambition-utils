@@ -39,6 +39,7 @@ class RecurrenceForm(forms.Form):
     Handles submission of data for populating rrule objects. The field names are based on the rrule
     params defined here http://dateutil.readthedocs.io/en/stable/rrule.html
     """
+    rrule = forms.ModelChoiceField(queryset=RRule.objects.all(), required=False)
 
     # Date from which the recurrence will be started from. This might not always be the first recurrence in the series
     dtstart = forms.DateField(
@@ -202,8 +203,18 @@ class RecurrenceForm(forms.Form):
                 params['byweekday'] = self.cleaned_data['bynweekday'][0][0]
                 params['bysetpos'] = self.cleaned_data['bynweekday'][0][1]
 
+        # Keep track if this is an existing rrule that needs occurrence updated
+        need_to_refresh_next_recurrence = False
+
+        # Get the rrule model from the cleaned data
+        rrule_model = self.cleaned_data.get('rrule')
+        if rrule_model:
+            need_to_refresh_next_recurrence = True
+        else:
+            # Use the recurrence passed into save kwargs
+            rrule_model = kwargs.get('recurrence') or RRule()
+
         # Create or update the rule
-        rrule_model = kwargs.get('recurrence') or RRule()
         rrule_model.rrule_params = params
         rrule_model.time_zone = self.cleaned_data.get('time_zone')
         for key, value in kwargs.items():
@@ -213,6 +224,10 @@ class RecurrenceForm(forms.Form):
                     setattr(rrule_model, key, value)
                 except TypeError:  # pragma: no cover
                     pass
+
+        # Check if this was an existing model that needs to have its next occurrence updated
+        if need_to_refresh_next_recurrence:
+            rrule_model.refresh_next_occurrence()
 
         rrule_model.save()
 

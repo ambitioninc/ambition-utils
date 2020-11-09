@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+1.2.0
+-----
+* Added support for passing an rrule object id in the recurrence form
+
+1.1.3
+-----
+* Fixed time zone object access in rrule model
+
 1.1.2
 -----
 * Fixed submitted from from being excluded in nested_form_kwargs
