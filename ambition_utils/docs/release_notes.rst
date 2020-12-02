@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+1.2.1
+-----
+* Use copy instead of deep copy on form data and files because deepcopy tries to serialize all objects including file types, which isn't always possible
+
 1.2.0
 -----
 * Added support for passing an rrule object id in the recurrence form

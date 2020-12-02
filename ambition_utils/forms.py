@@ -1,6 +1,6 @@
 import wrapt
 
-from copy import deepcopy
+from copy import deepcopy, copy
 from django import forms
 
 from django.core.exceptions import ValidationError
@@ -110,7 +110,7 @@ class NestedFormMixin(object):
 
         # Make a copy of the original data because we will be manipulating it and
         # potentially adding additional keys from our nested forms
-        self.data = deepcopy(self.data)
+        self.data = copy(self.data)
 
         # Assert that we have a save method
         if not hasattr(self, 'save'):
@@ -159,7 +159,7 @@ class NestedFormMixin(object):
 
             # Process the form field and file keys when there is a prefix defined on the nested form
             for label, data in (('data', self.data), ('files', self.files)):
-                for key, value in deepcopy(data).items():
+                for key, value in copy(data).items():
                     # Check if the prefix is there to replace
                     to_replace = '{0}_'.format(prefix)
                     if key.startswith(to_replace):
