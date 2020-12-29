@@ -1,9 +1,10 @@
-ambition-django-timezone-field>=2.0.1
-Django<3.0
+ambition-django-timezone-field>=2.0.4
+fleming>=0.6.0
+django-manager-utils>=2.0.0
+
+Django>=2.2
 pandas>=0.21.0
 python-dateutil>=2.4.2
-fleming>=0.4.6
-django-manager-utils>=0.13.1
 pytz>=2015.6
 six
 sqlparse
