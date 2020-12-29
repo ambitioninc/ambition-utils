@@ -2,7 +2,7 @@ celery==4.2.1
 coverage==4.5.1
 coveralls
 django-nose==1.4.5
-django-dynamic-fixture==2.0.0
+django-dynamic-fixture>=2.0.0
 freezegun==0.3.12
 mock==2.0.0
 psycopg2==2.7.7
