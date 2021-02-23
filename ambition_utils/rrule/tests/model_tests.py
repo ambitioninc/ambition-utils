@@ -543,6 +543,7 @@ class RRuleTest(TestCase):
             'interval': 1,
             'dtstart': datetime.datetime(2017, 1, 1, 22),
             'bymonthday': -1,
+            'until': datetime.datetime(2017, 5, 1, 22),
         }
 
         rule = RRule(
@@ -553,9 +554,11 @@ class RRuleTest(TestCase):
         next_dates = rule.get_next_dates()
 
         # Check a few dates
+        self.assertEqual(len(next_dates), 4)
         self.assertEqual(next_dates[0], datetime.datetime(2017, 2, 1, 3))
         self.assertEqual(next_dates[1], datetime.datetime(2017, 3, 1, 3))
         self.assertEqual(next_dates[2], datetime.datetime(2017, 4, 1, 2))
+        self.assertEqual(next_dates[3], datetime.datetime(2017, 5, 1, 2))
 
         # Run pre save again to make sure it doesn't mess up params
         rule.pre_save_hooks()

@@ -290,7 +290,7 @@ class RRule(models.Model):
                 date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
                 date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
                 dates.append(date_in_utc)
-        except Exception:
+        except Exception:  # pragma: no cover
             pass
 
         return dates
