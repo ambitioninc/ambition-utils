@@ -567,6 +567,33 @@ class RRuleTest(TestCase):
         more_next_dates = rule.get_next_dates()
         self.assertEqual(next_dates, more_next_dates)
 
+    def test_get_next_dates_from_params(self):
+        """
+        Tests the class method wrapper
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1, 22),
+            'bymonthday': -1,
+            'until': datetime.datetime(2017, 5, 1, 22),
+        }
+
+        rule = RRule(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+        next_dates = rule.get_next_dates(num_dates=3)
+
+        next_dates_from_params = RRule.get_next_dates_from_params(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            num_dates=3,
+        )
+
+        self.assertEqual(next_dates, next_dates_from_params)
+
     def test_model_different_time_zone_end_of_month_get_next_dates(self):
         """
         Test a monthly first day of month rule to catch case of converting tz back using the get_next_dates method

@@ -294,3 +294,10 @@ class RRule(models.Model):
             pass
 
         return dates
+
+    @classmethod
+    def get_next_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20):
+        time_zone = time_zone or pytz.utc
+        rule = cls(rrule_params=rrule_params, time_zone=time_zone)
+
+        return rule.get_next_dates(num_dates=num_dates)
