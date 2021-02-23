@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+2.1.0
+-----
+* Move rrule pre save code to a method
+* Add rrule method to generate next occurrences without a need to save to db
+
 2.0.0
 -----
 * Add add support for django 3.0, 3.1
