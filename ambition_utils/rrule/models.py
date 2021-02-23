@@ -265,7 +265,7 @@ class RRule(models.Model):
 
     def get_next_dates(self, num_dates=20):
         """
-        Generate the first 20 dates of the recurrence and return a list of datetimes
+        Generate the first num_dates dates of the recurrence and return a list of datetimes
         """
         assert num_dates > 0
 
@@ -290,7 +290,7 @@ class RRule(models.Model):
                 date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
                 date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
                 dates.append(date_in_utc)
-        except Exception as e:
-            print(e)
+        except Exception:
+            pass
 
         return dates
