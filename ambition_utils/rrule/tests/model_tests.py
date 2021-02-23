@@ -534,6 +534,71 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 3, 1, 3))
         self.assertEqual(rule.next_occurrence, datetime.datetime(2017, 4, 1, 2))
 
+    def test_get_next_dates(self):
+        """
+        Test a monthly first day of month rule to catch case of converting tz back using the get_next_dates method
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1, 22),
+            'bymonthday': -1,
+        }
+
+        rule = RRule(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+        next_dates = rule.get_next_dates()
+
+        # Check a few dates
+        self.assertEqual(next_dates[0], datetime.datetime(2017, 2, 1, 3))
+        self.assertEqual(next_dates[1], datetime.datetime(2017, 3, 1, 3))
+        self.assertEqual(next_dates[2], datetime.datetime(2017, 4, 1, 2))
+
+        # Run pre save again to make sure it doesn't mess up params
+        rule.pre_save_hooks()
+
+        # Get next dates to compare against
+        more_next_dates = rule.get_next_dates()
+        self.assertEqual(next_dates, more_next_dates)
+
+    def test_model_different_time_zone_end_of_month_get_next_dates(self):
+        """
+        Test a monthly first day of month rule to catch case of converting tz back using the get_next_dates method
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1, 22),
+            'bymonthday': -1,
+        }
+
+        rule = RRule(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+        next_dates = rule.get_next_dates()
+        self.assertEqual(next_dates[0], datetime.datetime(2017, 2, 1, 3))
+        self.assertEqual(next_dates[1], datetime.datetime(2017, 3, 1, 3))
+        self.assertEqual(next_dates[2], datetime.datetime(2017, 4, 1, 2))
+        self.assertEqual(next_dates[3], datetime.datetime(2017, 5, 1, 2))
+        self.assertEqual(next_dates[4], datetime.datetime(2017, 6, 1, 2))
+        self.assertEqual(next_dates[5], datetime.datetime(2017, 7, 1, 2))
+        self.assertEqual(next_dates[6], datetime.datetime(2017, 8, 1, 2))
+        self.assertEqual(next_dates[7], datetime.datetime(2017, 9, 1, 2))
+        self.assertEqual(next_dates[8], datetime.datetime(2017, 10, 1, 2))
+        self.assertEqual(next_dates[9], datetime.datetime(2017, 11, 1, 2))
+        self.assertEqual(next_dates[10], datetime.datetime(2017, 12, 1, 3))
+        self.assertEqual(next_dates[11], datetime.datetime(2018, 1, 1, 3))
+        self.assertEqual(next_dates[12], datetime.datetime(2018, 2, 1, 3))
+
+        self.assertEqual(rule.time_zone.zone, 'US/Eastern')
+        self.assertEqual(rule.last_occurrence, None)
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2017, 2, 1, 3))
+
     def test_model_different_time_zone_daily_with_ending_early(self):
         """
         Makes sure the time_zone is respected and ends before the ending time

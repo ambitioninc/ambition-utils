@@ -225,13 +225,10 @@ class RRule(models.Model):
         if next_occurrence != self.next_occurrence and next_occurrence > datetime.utcnow():
             self.next_occurrence = next_occurrence
 
-    def save(self, *args, **kwargs):
-        """
-        Saves the rrule model to the database. If this is a new object, the first next_scheduled time is
-        determined and set. The `dtstart` and `until` objects will be safely encoded as strings if they are
-        datetime objects.
-        """
+    def pre_save_hooks(self):
+        self.set_date_objects()
 
+    def set_date_objects(self):
         # Check if this is a new rrule object
         if self.pk is None:
             # Convert next scheduled from utc back to time zone
@@ -255,5 +252,45 @@ class RRule(models.Model):
         if self.rrule_params.get('until') and hasattr(self.rrule_params.get('until'), 'date'):
             self.rrule_params['until'] = self.rrule_params['until'].strftime('%Y-%m-%d %H:%M:%S')
 
+    def save(self, *args, **kwargs):
+        """
+        Saves the rrule model to the database. If this is a new object, the first next_scheduled time is
+        determined and set. The `dtstart` and `until` objects will be safely encoded as strings if they are
+        datetime objects.
+        """
+        self.pre_save_hooks()
+
         # Call the parent save method
         super().save(*args, **kwargs)
+
+    def get_next_dates(self, num_dates=20):
+        """
+        Generate the first 20 dates of the recurrence and return a list of datetimes
+        """
+        assert num_dates > 0
+
+        self.pre_save_hooks()
+
+        dates = []
+
+        rule = self.get_rrule()
+
+        try:
+            d = rule[0]
+            # Convert to time zone
+            date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
+            date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
+            dates.append(date_in_utc)
+
+            for x in range(0, num_dates):
+                d = rule.after(d)
+                if not d:
+                    break
+                # Convert to time zone
+                date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
+                date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
+                dates.append(date_in_utc)
+        except Exception as e:
+            print(e)
+
+        return dates
