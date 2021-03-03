@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+2.2.0
+-----
+* Added transaction module with durable decorator
+
 2.1.0
 -----
 * Move rrule pre save code to a method
