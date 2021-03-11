@@ -27,17 +27,14 @@ def durable_reset_atomic_for_testing():  # pragma: no cover
     # Create patch methods
     def patch_atomic_enter(*args, **kwargs):
         transactions.append((args, kwargs))
-        print('Entering atomic', len(transactions))
         return original_atomic_enter(*args, **kwargs)
 
     def patch_atomic_exit(*args, **kwargs):
-        print('Exiting atomic', len(transactions))
         if len(transactions):
             transactions.pop()
         return original_atomic_exit(*args, **kwargs)
 
     def patch_is_in_atomic_block():
-        print('Is in atomic block', len(transactions))
         if len(transactions):
             return original_is_in_atomic_block()
         return False
