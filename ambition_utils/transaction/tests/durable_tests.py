@@ -1,4 +1,4 @@
-from django.db import transaction, utils, connection
+from django.db import transaction, utils
 from django.test.testcases import TestCase
 from mock import patch
 
