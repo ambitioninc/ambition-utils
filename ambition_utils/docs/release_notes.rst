@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+2.2.1
+-----
+* Testing utilities for transaction durable decorator
+
 2.2.0
 -----
 * Added transaction module with durable decorator
