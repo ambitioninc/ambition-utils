@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+2.2.2
+-----
+* Fix recurrence bug in refresh_next_occurrence when recurrence is ending. Set next occurrence to null
+
 2.2.1
 -----
 * Testing utilities for transaction durable decorator
