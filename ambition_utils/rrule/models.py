@@ -222,6 +222,7 @@ class RRule(models.Model):
         next_occurrence = self.get_next_occurrence(last_occurrence=current_time)
 
         if next_occurrence:
+            # Only set if the new time is still greater than now
             if next_occurrence > datetime.utcnow():
                 self.next_occurrence = next_occurrence
         else:
