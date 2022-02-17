@@ -221,8 +221,11 @@ class RRule(models.Model):
         # Next occurrence is in utc here
         next_occurrence = self.get_next_occurrence(last_occurrence=current_time)
 
-        # Check if the start time is different but still greater than now
-        if next_occurrence != self.next_occurrence and next_occurrence > datetime.utcnow():
+        if next_occurrence:
+            # Only set if the new time is still greater than now
+            if next_occurrence > datetime.utcnow():
+                self.next_occurrence = next_occurrence
+        else:
             self.next_occurrence = next_occurrence
 
     def pre_save_hooks(self):

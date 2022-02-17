@@ -782,6 +782,40 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.last_occurrence, datetime.datetime(2017, 1, 1))
         self.assertEqual(rule.next_occurrence, datetime.datetime(2017, 1, 2))
 
+    def test_refresh_next_occurrence(self):
+        """
+        Checks that the next occurrence is set relative to the passed occurrence (or last occurrence if null)
+        Also verifies that a null next occurrence does not raise an exception, but sets the next to null
+        """
+        params = {
+            'freq': rrule.DAILY,
+            'dtstart': datetime.datetime(2022, 2, 15),
+            'until': datetime.datetime(2022, 2, 17),
+        }
+
+        with freeze_time('2-14-2022'):
+            rule = RRule.objects.create(
+                rrule_params=params,
+                occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+            )
+            self.assertEqual(rule.last_occurrence, None)
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 2, 15))
+
+        with freeze_time('2-15-2022'):
+            rule.refresh_next_occurrence()
+            self.assertEqual(rule.last_occurrence, None)
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 2, 16))
+
+        with freeze_time('2-16-2022'):
+            rule.refresh_next_occurrence()
+            self.assertEqual(rule.last_occurrence, None)
+            self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 2, 17))
+
+        with freeze_time('2-17-2022'):
+            rule.refresh_next_occurrence()
+            self.assertEqual(rule.last_occurrence, None)
+            self.assertEqual(rule.next_occurrence, None)
+
     def test_save_existing_update_next_occurrence(self):
         """
         When saving an existing rrule model, make sure that the next occurrence is updated when the
