@@ -18,3 +18,9 @@ class PostgresLock(models.Model):
 
     # The last time the lock was updated
     time = models.DateTimeField(default=None)
+
+    # An optional value to store with the lock
+    value = models.TextField(default=None, null=True)
+
+    # The previous value the last time the lock was acquired
+    previous_value = models.TextField(default=None, null=True)

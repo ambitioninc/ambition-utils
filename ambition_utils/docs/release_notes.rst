@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+2.3.0
+-----
+* Added `value` and `previous_value` fields onto postgres lock
+* Ability to pass a value into the `PostgresLockContext`
+* [BREAKING] `PostgresLockContext` now returns itself and now the transaction
+
 2.2.2
 -----
 * Fix recurrence bug in refresh_next_occurrence when recurrence is ending. Set next occurrence to null.
