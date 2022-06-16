@@ -48,7 +48,6 @@ def configure_settings():
                 'ambition_utils.anomaly',
                 'ambition_utils.postgres_lock',
                 'ambition_utils.rrule',
-                'ambition_utils.rrule.tests',
             ),
             LOGGING={
                 'version': 1,

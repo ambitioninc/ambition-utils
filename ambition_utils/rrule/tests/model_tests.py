@@ -7,8 +7,8 @@ from django.test import TestCase
 from freezegun import freeze_time
 
 from ambition_utils.rrule.handler import OccurrenceHandler
+
 from ambition_utils.rrule.models import RRule
-from ambition_utils.rrule.tests.models import Program
 
 
 class MockHandler(OccurrenceHandler):
@@ -209,62 +209,6 @@ class RRuleManagerTest(TestCase):
 
 
 class RRuleTest(TestCase):
-
-    def test_related_object_handlers(self):
-        """
-        Verifies the behavior of rrule related object handlers
-        """
-        program = Program.objects.create(name='Program 1')
-        start_rrule = RRule.objects.create(
-            rrule_params={
-                'freq': rrule.DAILY,
-                'interval': 1,
-                'dtstart': datetime.datetime(2022, 6, 1, 9),
-                'byhour': 9,
-            },
-            related_object=program,
-            related_object_handler_name='handle_start_recurrence',
-        )
-        end_rrule = RRule.objects.create(
-            rrule_params={
-                'freq': rrule.DAILY,
-                'interval': 1,
-                'dtstart': datetime.datetime(2022, 6, 1, 17),
-                'byhour': 17,
-            },
-            related_object=program,
-            related_object_handler_name='handle_end_recurrence',
-        )
-        program.start_recurrence = start_rrule
-        program.end_recurrence = end_rrule
-        program.save()
-
-        # Make sure handlers are not called before date
-        with freeze_time(datetime.datetime(2022, 5, 31)):
-            RRule.objects.handle_overdue()
-            program = Program.objects.get(id=program.id)
-            self.assertEqual(program.start_called, 0)
-            self.assertEqual(program.end_called, 0)
-            self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 9))
-            self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 17))
-
-        # Make sure only start handler is called
-        with freeze_time(datetime.datetime(2022, 6, 1, 9)):
-            RRule.objects.handle_overdue()
-            program = Program.objects.get(id=program.id)
-            self.assertEqual(program.start_called, 1)
-            self.assertEqual(program.end_called, 0)
-            self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
-            self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 17))
-
-        # Make sure only end handler is called
-        with freeze_time(datetime.datetime(2022, 6, 1, 17)):
-            RRule.objects.handle_overdue()
-            program = Program.objects.get(id=program.id)
-            self.assertEqual(program.start_called, 1)
-            self.assertEqual(program.end_called, 1)
-            self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
-            self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 17))
 
     def test_get_time_zone_object_none(self):
         """
