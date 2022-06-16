@@ -1,6 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 from dateutil import parser
+from dateutil.rrule import rrule
 from django.contrib.postgres.fields import JSONField
 from django.db import models, transaction
 from django.utils.module_loading import import_string
