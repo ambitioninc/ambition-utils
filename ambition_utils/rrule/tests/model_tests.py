@@ -48,6 +48,9 @@ class HandlerThree(OccurrenceHandler):
 
 class RRuleManagerTest(TestCase):
 
+    def test_foo(self):
+        self.assertEqual(1,1)
+
     def test_update_next_occurrences(self):
         """
         Make sure that the correct occurrences are selected
@@ -963,3 +966,69 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.next_occurrence, datetime.datetime(2019, 5, 1, 4))
         self.assertEqual(rule.rrule_params['dtstart'], '2019-05-01 00:00:00')
         self.assertEqual(rule.rrule_params['until'], '2019-06-01 00:00:00')
+
+    @freeze_time('6-15-2022')
+    def test_clone_with_offset(self):
+        # New object that starts next Wednesday
+        # Weekly on MWF
+        rule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.WEEKLY,
+                'dtstart': datetime.datetime(2022, 6, 22),
+                'byweekday': [0, 2, 4],
+            },
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+
+        # Create a clones of the object with a start date of 2 days into the future and 2 days into the past.
+        future_clone = RRule.clone_with_offset(rule, 2)
+        past_clone = RRule.clone_with_offset(rule, -2)
+
+        # Assert that the rule created here is unchanged but the clones reflect their offsets.
+        format = '%Y-%m-%d'
+        self.assertEqual(rule.next_occurrence.strftime(format), '2022-06-22')
+        self.assertEqual(future_clone.next_occurrence.strftime(format), '2022-06-24')
+        self.assertEqual(past_clone.next_occurrence.strftime(format), '2022-06-20')
+
+        # Assert that the rule created here is unchanged but the clone's byweekday params reflect their offsets.
+        # Future: MWF -> WFSu
+        # Past: MWF -> SMW
+        self.assertEqual(rule.rrule_params['byweekday'], [0, 2, 4])
+        self.assertEqual(future_clone.rrule_params['byweekday'], [2, 4, 6])
+        self.assertEqual(past_clone.rrule_params['byweekday'], [5, 0, 2])
+
+        # Assert the generated dates are as expected.
+        self.assertEqual(
+            rule.generate_dates(num_dates=4),
+            [
+                datetime.datetime(2022, 6, 22),  # Wednesday
+                datetime.datetime(2022, 6, 24),  # Friday
+                datetime.datetime(2022, 6, 27),  # Monday
+                datetime.datetime(2022, 6, 29),  # Wednesday
+                datetime.datetime(2022, 7, 1),   # Friday
+            ]
+        )
+
+        # Two days after each date in the regular series.
+        self.assertEqual(
+            future_clone.generate_dates(num_dates=4),
+            [
+                datetime.datetime(2022, 6, 24),  # Friday
+                datetime.datetime(2022, 6, 26),  # Sunday
+                datetime.datetime(2022, 6, 29),  # Wednesday
+                datetime.datetime(2022, 7, 1),   # Friday
+                datetime.datetime(2022, 7, 3),   # Sunday
+            ]
+        )
+
+        # Two days before each date in the regular series.
+        self.assertEqual(
+            past_clone.generate_dates(num_dates=4),
+            [
+                datetime.datetime(2022, 6, 20),  # Monday
+                datetime.datetime(2022, 6, 22),  # Wednesday
+                datetime.datetime(2022, 6, 25),  # Saturday
+                datetime.datetime(2022, 6, 27),  # Monday
+                datetime.datetime(2022, 6, 29),  # Wednesday
+            ]
+        )

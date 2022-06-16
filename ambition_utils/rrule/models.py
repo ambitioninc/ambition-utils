@@ -1,17 +1,17 @@
-import copy
-from datetime import datetime
-
-import pytz
-from dateutil.rrule import rrule
+from __future__ import annotations
+from datetime import datetime, timedelta
 from dateutil import parser
-from django.contrib.postgres.fields import JSONField
-from django.db import models, transaction
+from dateutil.rrule import rrule
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.fields import JSONField
+from django.db import models, transaction
 from django.utils.module_loading import import_string
 from fleming import fleming
 from manager_utils import bulk_update
 from timezone_field import TimeZoneField
+import copy
+import pytz
 
 
 class RRuleManager(models.Manager):
@@ -351,3 +351,31 @@ class RRule(models.Model):
         rule = cls(rrule_params=rrule_params, time_zone=time_zone)
 
         return rule.generate_dates(num_dates=num_dates)
+
+    @classmethod
+    def clone_with_offset(cls, source: RRule, day_offset: int) -> RRule:
+        """
+        Creates a clone of a passed RRule object offset by a specified number of days.
+        Days can be negative.
+        """
+
+        # Create a clone of the source RRule
+        clone = copy.deepcopy(source)
+
+        # Get rrule object
+
+        # Update the rrule.dtstart with the offset.
+        clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)
+
+        # Update the next_occurrence with the calculated offset
+        # refresh_occurrence() is not what we want because the clone needs an explict next_occurrence.
+        clone.next_occurrence = clone.rrule_params['dtstart']
+        clone.save()
+
+        if 'byweekday' in clone.rrule_params:
+            clone.rrule_params['byweekday'] = [
+                (7 + (day + day_offset)) % 7
+                for day in clone.rrule_params['byweekday']
+            ]
+
+        return clone
