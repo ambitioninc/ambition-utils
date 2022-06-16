@@ -325,6 +325,7 @@ class RRule(models.Model):
         clone.next_occurrence = clone.rrule_params['dtstart']
         clone.save()
 
+        # Update byweekday params by offsetting each one present.
         if 'byweekday' in clone.rrule_params:
             clone.rrule_params['byweekday'] = [
                 (7 + (day + day_offset)) % 7
