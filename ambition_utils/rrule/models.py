@@ -1,6 +1,9 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 from dateutil import parser
+from dateutil.rrule import rrule
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import JSONField
 from django.db import models, transaction
 from django.utils.module_loading import import_string
@@ -23,14 +26,23 @@ class RRuleManager(models.Manager):
 
         bulk_update(self, rrule_objects, ['last_occurrence', 'next_occurrence'])
 
+        return rrule_objects
+
     @transaction.atomic
-    def handle_overdue(self, **filters):
+    def handle_overdue(self, **kwargs):
         """
         Handles any overdue rrules
+        :param kwargs: the old optional kwarg filters for specifying additional occurrence handler filters
         """
+        self.process_occurrence_handler_paths(**kwargs)
+        self.process_related_model_handlers()
 
+    def process_occurrence_handler_paths(self, **kwargs):
+        """
+        This is the old style of processing overdue rrules
+        """
         # Get instances of all overdue recurrence handler classes
-        instances = self.overdue_handler_class_instances(**filters)
+        instances = self.overdue_handler_class_instances(**kwargs)
 
         # Build a list of rrules that get returned from the handler
         rrules = []
@@ -40,7 +52,29 @@ class RRuleManager(models.Manager):
         # Bulk update the next occurrences
         RRule.objects.update_next_occurrences(rrule_objects=rrules)
 
-    def overdue_handler_class_instances(self, **filters):
+    def process_related_model_handlers(self):
+        # Get the rrule objects that are overdue and need to be handled
+        rrule_objects = self.get_queryset().filter(
+            next_occurrence__lte=datetime.utcnow(),
+            related_object_handler_name__isnull=False,
+            related_object_id__isnull=False,
+        ).prefetch_related('related_object')
+
+        rrules_to_advance = []
+        for rrule_object in rrule_objects:
+            if hasattr(rrule_object.related_object, rrule_object.related_object_handler_name):
+                rrules_to_advance.append(
+                    getattr(rrule_object.related_object, rrule_object.related_object_handler_name)(rrule_object)
+                )
+
+        rrules_to_advance = [rrule_to_advance for rrule_to_advance in rrules_to_advance if rrule_to_advance]
+
+        # Bulk update the next occurrences
+        rrules_to_advance = RRule.objects.update_next_occurrences(rrule_objects=rrules_to_advance)
+
+        return rrules_to_advance
+
+    def overdue_handler_class_instances(self, **kwargs):
         """
         Returns a set of instances for any handler with an old next_occurrence
         """
@@ -48,16 +82,18 @@ class RRuleManager(models.Manager):
         # Get the rrule objects that are overdue and need to be handled
         rrule_objects = self.get_queryset().filter(
             next_occurrence__lte=datetime.utcnow(),
-            **filters
+            **kwargs
         ).distinct(
             'occurrence_handler_path'
         )
 
         # Return instances of the handler classes
-        return [
+        handler_classes = [
             rrule_object.get_occurrence_handler_class_instance()
             for rrule_object in rrule_objects
         ]
+        handler_classes = [handler_class for handler_class in handler_classes if handler_class]
+        return handler_classes
 
 
 class RRule(models.Model):
@@ -84,6 +120,14 @@ class RRule(models.Model):
     # The configuration class must extend ambition_utils.rrule.handler.OccurrenceHandler
     occurrence_handler_path = models.CharField(max_length=500, blank=False, null=False)
 
+    # Generic relation back to object to explicitly call expiration methods
+    related_object_id = models.IntegerField(null=True, db_index=True)
+    related_object_content_type = models.ForeignKey(ContentType, null=True, on_delete=models.PROTECT)
+    related_object = GenericForeignKey('related_object_content_type', 'related_object_id')
+
+    # The name of the method to call on the related_object when the recurrence has expired
+    related_object_handler_name = models.TextField(default=None, null=True, blank=True)
+
     # Custom object manager
     objects = RRuleManager()
 
@@ -103,7 +147,11 @@ class RRule(models.Model):
         :rtype: ambition_utils.rrule.handler.OccurrenceHandler
         :return: The instance
         """
-        return import_string(self.occurrence_handler_path)()
+        try:
+            handler_class = import_string(self.occurrence_handler_path)()
+            return handler_class
+        except:
+            return None
 
     def get_rrule(self):
         """
