@@ -359,10 +359,10 @@ class RRule(models.Model):
         Days can be negative.
         """
 
-        # Create a clone of the source RRule
+        # Create a clone of the source RRule.
+        # Clear id to force a new object.
         clone = copy.deepcopy(source)
-
-        # Get rrule object
+        clone.id = None
 
         # Update the rrule.dtstart with the offset.
         clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)
@@ -370,7 +370,6 @@ class RRule(models.Model):
         # Update the next_occurrence with the calculated offset
         # refresh_occurrence() is not what we want because the clone needs an explict next_occurrence.
         clone.next_occurrence = clone.rrule_params['dtstart']
-        clone.save()
 
         # Update byweekday params by offsetting each one present.
         if 'byweekday' in clone.rrule_params:
@@ -378,5 +377,8 @@ class RRule(models.Model):
                 (7 + (day + day_offset)) % 7
                 for day in clone.rrule_params['byweekday']
             ]
+
+        # Lock it.
+        clone.save()
 
         return clone
