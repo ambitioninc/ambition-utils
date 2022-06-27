@@ -353,6 +353,21 @@ class RRule(models.Model):
         return rule.generate_dates(num_dates=num_dates)
 
     @classmethod
+    def clone(cls, source: RRule) -> RRule:
+        """
+        Creates a clone of a passed RRule object offset.
+        """
+
+        # Create a clone of the source RRule.
+        # Clear id to force a new object.
+        clone = copy.deepcopy(source)
+        clone.id = None
+
+        clone.save()
+
+        return clone
+
+    @classmethod
     def clone_with_offset(cls, source: RRule, day_offset: int) -> RRule:
         """
         Creates a clone of a passed RRule object offset by a specified number of days.
@@ -360,9 +375,7 @@ class RRule(models.Model):
         """
 
         # Create a clone of the source RRule.
-        # Clear id to force a new object.
-        clone = copy.deepcopy(source)
-        clone.id = None
+        clone = cls.clone(source)
 
         # Update the rrule.dtstart with the offset.
         clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)

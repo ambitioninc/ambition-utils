@@ -968,6 +968,32 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.rrule_params['until'], '2019-06-01 00:00:00')
 
     @freeze_time('6-15-2022')
+    def test_clone(self):
+        # New object that starts next Wednesday
+        # Weekly on MWF
+        rule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.WEEKLY,
+                'dtstart': datetime.datetime(2022, 6, 22),
+                'byweekday': [0, 2, 4],
+            },
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+
+        # Create a clone of the object.
+        clone = RRule.clone(rule)
+
+        # Assert that the clone's next occurrence is the same.
+        format = '%Y-%m-%d'
+        self.assertEqual(rule.next_occurrence.strftime(format), clone.next_occurrence.strftime(format))
+
+        # Assert that the clone's params are the same
+        self.assertEqual(rule.rrule_params, clone.rrule_params)
+
+        # Assert the generated dates are equal.
+        self.assertEqual(rule.generate_dates(num_dates=4), clone.generate_dates(num_dates=4))
+
+    @freeze_time('6-15-2022')
     def test_clone_with_offset(self):
         # New object that starts next Wednesday
         # Weekly on MWF
