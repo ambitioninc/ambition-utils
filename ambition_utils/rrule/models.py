@@ -377,12 +377,9 @@ class RRule(models.Model):
         # Create a clone of the source RRule.
         clone = cls.clone(source)
 
-        # Update the rrule.dtstart with the offset.
+        # Manually update the rrule.dtstart & next_occurrence with the offset.
         clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)
-
-        # Update the next_occurrence with the calculated offset
-        # refresh_occurrence() is not what we want because the clone needs an explict next_occurrence.
-        clone.next_occurrence = clone.rrule_params['dtstart']
+        clone.next_occurrence = clone.next_occurrence + timedelta(days=day_offset)
 
         # Update byweekday params by offsetting each one present.
         if 'byweekday' in clone.rrule_params:
