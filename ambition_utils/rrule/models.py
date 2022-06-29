@@ -358,7 +358,7 @@ class RRule(models.Model):
 
         return clone
 
-    def clone_with_offset(self, day_offset: int) -> RRule:
+    def clone_with_day_offset(self, day_offset: int) -> RRule:
         """
         Creates a clone of a passed RRule object offset by a specified number of days.
         Days can be negative.
