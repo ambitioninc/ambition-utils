@@ -48,9 +48,6 @@ class HandlerThree(OccurrenceHandler):
 
 class RRuleManagerTest(TestCase):
 
-    def test_foo(self):
-        self.assertEqual(1,1)
-
     def test_update_next_occurrences(self):
         """
         Make sure that the correct occurrences are selected
