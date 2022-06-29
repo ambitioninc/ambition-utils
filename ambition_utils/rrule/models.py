@@ -345,37 +345,27 @@ class RRule(models.Model):
 
         return dates
 
-    @classmethod
-    def generate_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20):
-        time_zone = time_zone or pytz.utc
-        rule = cls(rrule_params=rrule_params, time_zone=time_zone)
-
-        return rule.generate_dates(num_dates=num_dates)
-
-    @classmethod
-    def clone(cls, source: RRule) -> RRule:
+    def clone(self) -> RRule:
         """
-        Creates a clone of a passed RRule object offset.
+        Creates a clone of itself.
         """
 
-        # Create a clone of the source RRule.
         # Clear id to force a new object.
-        clone = copy.deepcopy(source)
+        clone = copy.deepcopy(self)
         clone.id = None
 
         clone.save()
 
         return clone
 
-    @classmethod
-    def clone_with_offset(cls, source: RRule, day_offset: int) -> RRule:
+    def clone_with_offset(self, day_offset: int) -> RRule:
         """
         Creates a clone of a passed RRule object offset by a specified number of days.
         Days can be negative.
         """
 
-        # Create a clone of the source RRule.
-        clone = cls.clone(source)
+        # Create a clone of itself
+        clone = self.clone()
 
         # Manually update the rrule.dtstart & next_occurrence with the offset.
         clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)
@@ -392,3 +382,11 @@ class RRule(models.Model):
         clone.save()
 
         return clone
+
+    @classmethod
+    def generate_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20):
+        time_zone = time_zone or pytz.utc
+        rule = cls(rrule_params=rrule_params, time_zone=time_zone)
+
+        return rule.generate_dates(num_dates=num_dates)
+

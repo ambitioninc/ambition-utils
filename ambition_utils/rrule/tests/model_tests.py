@@ -1004,8 +1004,8 @@ class RRuleTest(TestCase):
         )
 
         # Create a clones of the object with a start date of 2 days into the future and 2 days into the past.
-        future_clone = RRule.clone_with_offset(rule, 2)
-        past_clone = RRule.clone_with_offset(rule, -2)
+        future_clone = rule.clone_with_offset(2)
+        past_clone = rule.clone_with_offset(-2)
 
         # Assert that the rule created here is unchanged but the clones reflect their offsets.
         format = '%Y-%m-%d'
