@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+2.4.0
+-----
+* Added related object relation and object-level handling 
+* Added clone_with_day_offset method 
+* Added clone method
+
 2.3.0
 -----
 * Added `value` and `previous_value` fields onto postgres lock
