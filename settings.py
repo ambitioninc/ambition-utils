@@ -1,4 +1,5 @@
 import os
+import json
 
 import sys
 from django.conf import settings
@@ -28,16 +29,16 @@ def configure_settings():
         else:
             raise RuntimeError('Unsupported test DB {0}'.format(test_db))
 
+        # Check env for db override (used for github actions)
+        if os.environ.get('DB_SETTINGS'):
+            db_config = json.loads(os.environ.get('DB_SETTINGS'))
+
         settings.configure(
             TEST_RUNNER='django_nose.NoseTestSuiteRunner',
             NOSE_ARGS=['--nocapture', '--nologcapture', '--verbosity=1'],
             MIDDLEWARE_CLASSES=(),
             DATABASES={
                 'default': db_config,
-                'mock-second-database': {
-                    'ENGINE': 'django.db.backends.sqlite3',
-                    'TEST_MIRROR': 'default',
-                },
             },
             INSTALLED_APPS=(
                 'django.contrib.auth',

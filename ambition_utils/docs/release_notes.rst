@@ -1,11 +1,19 @@
 Release Notes
 =============
 
+3.0.0
+-----
+* Add support for python 3.8, 3.9
+* Drop support for python 3.6
+* Add support for Django 3.0, 3.1, 3.2, 4.0, 4.1
+* Drop support for django 2.0, 2.1
+* Switch to github actions
+
 2.4.0
 -----
-* Added related object relation and object-level handling 
-* Added clone_with_day_offset method 
-* Added clone method
+* Added rrule related object relation and object-level handling
+* Added rrule clone_with_day_offset method
+* Added rrule clone method
 
 2.3.0
 -----
