@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class RRuleTestsConfig(AppConfig):
     name = 'ambition_utils.rrule.tests'
-    verbose_name = 'Ambition Utils'
+    verbose_name = 'Ambition Utils RRule Tests'
