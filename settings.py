@@ -13,16 +13,14 @@ def configure_settings():
         # Determine the database settings depending on if a test_db var is set in CI mode or not
         test_db = os.environ.get('DB', None)
         if test_db is None:
-            print('db is none')
             db_config = {
                 'ENGINE': 'django.db.backends.postgresql',
-                'NAME': 'querybuilder',
+                'NAME': 'test_ambition',
                 'USER': 'postgres',
                 'PASSWORD': '',
                 'HOST': 'db',
             }
         elif test_db == 'postgres':
-            print('db is postgres')
             db_config = {
                 'ENGINE': 'django.db.backends.postgresql',
                 'NAME': 'ambition_utils',
@@ -51,6 +49,7 @@ def configure_settings():
                 'ambition_utils.tests',
                 'ambition_utils.activity',
                 'ambition_utils.anomaly',
+                'ambition_utils.anomaly.tests',
                 'ambition_utils.postgres_lock',
                 'ambition_utils.rrule',
                 'ambition_utils.rrule.tests',
