@@ -15,7 +15,7 @@ def configure_settings():
         if test_db is None:
             db_config = {
                 'ENGINE': 'django.db.backends.postgresql',
-                'NAME': 'test_ambition',
+                'NAME': 'ambition_utils',
                 'USER': 'postgres',
                 'PASSWORD': '',
                 'HOST': 'db',
@@ -37,11 +37,13 @@ def configure_settings():
 
         settings.configure(
             TEST_RUNNER='django_nose.NoseTestSuiteRunner',
+            SECRET_KEY='*',
             NOSE_ARGS=['--nocapture', '--nologcapture', '--verbosity=1'],
             MIDDLEWARE_CLASSES=(),
             DATABASES={
                 'default': db_config,
             },
+            DEBUG=False,
             INSTALLED_APPS=(
                 'django.contrib.auth',
                 'django.contrib.contenttypes',

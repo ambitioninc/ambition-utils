@@ -389,4 +389,3 @@ class RRule(models.Model):
         rule = cls(rrule_params=rrule_params, time_zone=time_zone)
 
         return rule.generate_dates(num_dates=num_dates)
-
