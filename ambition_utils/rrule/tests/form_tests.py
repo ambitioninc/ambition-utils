@@ -140,8 +140,8 @@ class NestedRecurrenceFormTest(TestCase):
             'freq': rrule.DAILY,
             'interval': 6,
             'dtstart': '6/1/2017',
-            'byhour': '0',
-            'byminute': '0',
+            'byhour': '5',
+            'byminute': '30',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.ON,
             'until': '6/10/2017',
@@ -155,8 +155,8 @@ class NestedRecurrenceFormTest(TestCase):
 
         self.assertEqual(rule.count(), 2)
 
-        self.assertEqual(rule[0], datetime.datetime(2017, 6, 1))
-        self.assertEqual(rule[1], datetime.datetime(2017, 6, 7))
+        self.assertEqual(rule[0], datetime.datetime(2017, 6, 1, 5, 30))
+        self.assertEqual(rule[1], datetime.datetime(2017, 6, 7, 5, 30))
 
     def test_missing_ends_on(self):
         """
