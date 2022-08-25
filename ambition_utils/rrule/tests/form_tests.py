@@ -138,7 +138,7 @@ class NestedRecurrenceFormTest(TestCase):
     def test_daily_with_end_date(self):
         data = {
             'freq': rrule.DAILY,
-            'interval': 6,
+            'interval': 3,
             'dtstart': '6/1/2017',
             'byhour': '5',
             'byminute': '30',
@@ -153,10 +153,12 @@ class NestedRecurrenceFormTest(TestCase):
         rrule_model = form.save()
         rule = rrule_model.get_rrule()
 
-        self.assertEqual(rule.count(), 2)
+        self.assertEqual(rule.count(), 4)
 
         self.assertEqual(rule[0], datetime.datetime(2017, 6, 1, 5, 30))
-        self.assertEqual(rule[1], datetime.datetime(2017, 6, 7, 5, 30))
+        self.assertEqual(rule[1], datetime.datetime(2017, 6, 4, 5, 30))
+        self.assertEqual(rule[2], datetime.datetime(2017, 6, 7, 5, 30))
+        self.assertEqual(rule[3], datetime.datetime(2017, 6, 10, 5, 30))
 
     def test_missing_ends_on(self):
         """
