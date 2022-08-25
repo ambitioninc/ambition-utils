@@ -136,6 +136,9 @@ class NestedRecurrenceFormTest(TestCase):
         self.assertFalse(form.is_valid())
 
     def test_daily_with_end_date(self):
+        """
+        Assert dates can occur on the last day up till the recurring minute.
+        """
         data = {
             'freq': rrule.DAILY,
             'interval': 3,
