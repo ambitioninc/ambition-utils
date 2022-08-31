@@ -9,9 +9,9 @@ from django import db
 from ambition_utils.postgres_lock.lock import PostgresLockContext, PostgresLockException
 
 
-def acquire_postgres_lock(queue, process_name, lock_name, lock_timeout, sleep=0):  # pragma: no cover
+def acquire_postgres_lock(queue, process_name, lock_name, lock_timeout, value=None, sleep=0):  # pragma: no cover
     try:
-        with PostgresLockContext(lock_name, timeout=lock_timeout):
+        with PostgresLockContext(lock_name, value=value, timeout=lock_timeout):
             # Create the start time
             start_time = datetime.utcnow()
 
@@ -41,6 +41,16 @@ class PostgresLockTests(TransactionTestCase):
     """
     Test the postgres lock
     """
+
+    def test_value(self):
+        """
+        Test that we can pass a value
+        """
+        with PostgresLockContext('test', value='1') as lock_context:
+            self.assertTrue(lock_context.lock['value'], '1')
+        with PostgresLockContext('test', value='2') as lock_context:
+            self.assertTrue(lock_context.lock['value'], '2')
+            self.assertTrue(lock_context.lock['previous_value'], '1')
 
     def test_lock_context(self):
         # Create a queue for responses
