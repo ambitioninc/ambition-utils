@@ -52,9 +52,7 @@ class RecurrenceForm(forms.Form):
     )
 
     # The minute for each recurrence (0-59)
-    byminute = forms.IntegerField(
-        error_messages={'required': 'Minute is required'},
-    )
+    byminute = forms.IntegerField(required=False)
 
     # The time zone which the submitted time is treated as. The submitted time is converted to utc
     time_zone = forms.ChoiceField(
@@ -137,6 +135,16 @@ class RecurrenceForm(forms.Form):
             raise ValidationError('Repeat by is required')
 
         return cleaned_data
+
+    def clean_byminute(self):
+        """
+        Set optional byminute value to 0 if not defined
+        """
+
+        if 'byminute' not in self.data:
+            return 0
+        else:
+            return self.cleaned_data['byminute']
 
     def clean_byweekday(self):
         """

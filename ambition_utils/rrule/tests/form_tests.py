@@ -37,7 +37,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/1/2017',
             'byhour': '3',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
         }
@@ -57,7 +56,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/1/2017',
             'byhour': '22',
-            'byminute': '0',
             'time_zone': 'US/Eastern',
             'ends': RecurrenceEnds.NEVER,
         }
@@ -85,7 +83,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 4,
             'dtstart': '6/1/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.AFTER,
             'count': 3,
@@ -113,6 +110,7 @@ class NestedRecurrenceFormTest(TestCase):
         self.assertFalse(form.is_valid())
 
         self.assertEqual(form.clean(), {
+            'byminute': 0,
             'bynweekday': [],
             'byweekday': [],
             'count': None,
@@ -127,7 +125,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 4,
             'dtstart': '6/1/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.AFTER,
         }
@@ -172,7 +169,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 6,
             'dtstart': '6/1/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.ON,
         }
@@ -212,7 +208,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 6,
             'dtstart': '6/1/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
             'until': '6/1/2017',
@@ -231,7 +226,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 6,
             'dtstart': '6/1/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.ON,
             'until': '5/31/2017',
@@ -253,7 +247,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 2,
             'dtstart': '6/1/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.ON,
             'until': '7/10/2017',
@@ -283,7 +276,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 2,
             'dtstart': '6/1/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.ON,
             'until': '7/10/2017',
@@ -302,7 +294,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/4/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
         }
@@ -316,7 +307,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/4/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
             'repeat_by': 'DAY_OF_THE_MONTH',
@@ -338,7 +328,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/4/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
             'repeat_by': 'DAY_OF_THE_MONTH_END',
@@ -375,7 +364,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/11/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
             'repeat_by': 'DAY_OF_THE_WEEK_START',
@@ -401,7 +389,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 2,
             'dtstart': '6/11/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
             'repeat_by': 'DAY_OF_THE_WEEK_END',
@@ -424,7 +411,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/4/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
         }
@@ -448,7 +434,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/4/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
         }
@@ -474,7 +459,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/4/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
         }
@@ -493,7 +477,6 @@ class NestedRecurrenceFormTest(TestCase):
             'interval': 1,
             'dtstart': '6/7/2017',
             'byhour': '0',
-            'byminute': '0',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
         }
