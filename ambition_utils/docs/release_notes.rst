@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+2.5.0
+-----
+* Added support for byminute
+
 2.4.0
 -----
 * Added related object relation and object-level handling 

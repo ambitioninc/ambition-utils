@@ -48,8 +48,11 @@ class RecurrenceForm(forms.Form):
 
     # The hour for each recurrence (0-23)
     byhour = forms.IntegerField(
-        error_messages={'required': 'Time is required'},
+        error_messages={'required': 'Hour is required'},
     )
+
+    # The minute for each recurrence (0-59)
+    byminute = forms.IntegerField(required=False)
 
     # The time zone which the submitted time is treated as. The submitted time is converted to utc
     time_zone = forms.ChoiceField(
@@ -133,6 +136,16 @@ class RecurrenceForm(forms.Form):
 
         return cleaned_data
 
+    def clean_byminute(self):
+        """
+        Set optional byminute value to 0 if not defined
+        """
+
+        if 'byminute' not in self.data:
+            return 0
+        else:
+            return self.cleaned_data['byminute']
+
     def clean_byweekday(self):
         """
         Decode the byweekday option
@@ -174,9 +187,9 @@ class RecurrenceForm(forms.Form):
             'freq': rrule_freq,
             'dtstart': start_datetime,
             'byhour': self.cleaned_data.get('byhour'),
+            'byminute': self.cleaned_data.get('byminute'),
+            'interval': self.cleaned_data.get('interval', 1),
         }
-
-        params['interval'] = self.cleaned_data.get('interval', 1)
 
         if self.cleaned_data.get('count'):
             params['count'] = self.cleaned_data.get('count')
@@ -186,7 +199,7 @@ class RecurrenceForm(forms.Form):
             until = datetime.combine(self.cleaned_data.get('until'), datetime.min.time())
 
             # Add hour to until datetime if it exists
-            until = until.replace(hour=params['byhour'])
+            until = until.replace(hour=params['byhour'], minute=params['byminute'])
             params['until'] = until
 
         # Add day choices
