@@ -6,6 +6,8 @@ from django_dynamic_fixture import G
 from django.test import TestCase
 from freezegun import freeze_time
 
+from ambition_utils.rrule.constants import RecurrenceEnds
+from ambition_utils.rrule.forms import RecurrenceForm
 from ambition_utils.rrule.handler import OccurrenceHandler
 from ambition_utils.rrule.models import RRule
 from ambition_utils.rrule.tests.models import Program
@@ -991,7 +993,7 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.generate_dates(num_dates=4), clone.generate_dates(num_dates=4))
 
     @freeze_time('6-15-2022')
-    def test_clone_with_offset(self):
+    def test_weekly_clone_with_offset(self):
         # New object that starts next Wednesday
         # Weekly on MWF
         rule = RRule.objects.create(
@@ -1055,3 +1057,37 @@ class RRuleTest(TestCase):
                 datetime.datetime(2022, 6, 29),  # Wednesday
             ]
         )
+
+    @freeze_time('6-1-2022')
+    def test_monthly_clone_with_offset(self):
+        """
+        Assert than an object with bynweekday data can be cloned with an offset.
+        """
+
+        # Second Monday from end of month every other month
+        # Starts today, 6/1. First occurrence is 6/20. (Last Monday is 27th.)
+        data = {
+            'freq': rrule.MONTHLY,
+            'interval': 2,
+            'dtstart': '6/1/2022',
+            'byhour': '0',
+            'time_zone': 'UTC',
+            'ends': RecurrenceEnds.NEVER,
+            'repeat_by': 'DAY_OF_THE_WEEK_END',
+            'bynweekday': '[[0, -2]]'
+        }
+        
+        # Form is used to flex the bynweeday to byweekday + bysetpos conversion that occurs in its save().
+        form = RecurrenceForm(data=data)
+        self.assertTrue(form.is_valid())
+        rule = form.save()
+
+        # Create a clones of the object with a start date of 2 days into the future and 2 days into the past.
+        future_clone = rule.clone_with_day_offset(2)
+        past_clone = rule.clone_with_day_offset(-2)
+
+        # Assert that the rule created here is unchanged but the clones reflect their offsets.
+        format = '%Y-%m-%d'
+        self.assertEqual(rule.next_occurrence.strftime(format), '2022-06-20')
+        self.assertEqual(future_clone.next_occurrence.strftime(format), '2022-06-22')
+        self.assertEqual(past_clone.next_occurrence.strftime(format), '2022-06-18')
