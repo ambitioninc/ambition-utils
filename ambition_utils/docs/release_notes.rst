@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+2.5.1
+-----
+* Fixed cloning with bynweekday data
+
 2.5.0
 -----
 * Added support for byminute
