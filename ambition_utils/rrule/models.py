@@ -371,12 +371,20 @@ class RRule(models.Model):
         clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)
         clone.next_occurrence = clone.next_occurrence + timedelta(days=day_offset)
 
-        # Update byweekday params by offsetting each one present.
+        def offset_day(day, day_offset):
+            """
+            Calculates a day offset by a number of days.
+            """
+            return (7 + (day + day_offset)) % 7
+
+        # Update byweekday param by offsetting. byweekday can be an array or integer.
         if 'byweekday' in clone.rrule_params:
-            clone.rrule_params['byweekday'] = [
-                (7 + (day + day_offset)) % 7
-                for day in clone.rrule_params['byweekday']
-            ]
+            if isinstance(clone.rrule_params['byweekday'], list):
+                clone.rrule_params['byweekday'] = [
+                    offset_day(day, day_offset) for day in clone.rrule_params['byweekday']
+                ]
+            else:
+                clone.rrule_params['byweekday'] = offset_day(clone.rrule_params['byweekday'], day_offset)
 
         # Lock it.
         clone.save()
