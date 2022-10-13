@@ -1,5 +1,5 @@
 from datetime import datetime
-from pytz import all_timezones, timezone, exceptions as pytz_exceptions
+from pytz import common_timezones, timezone, exceptions as pytz_exceptions
 
 
 def get_gmt_offset(tz_name, now):
@@ -25,7 +25,7 @@ def get_time_zones(return_as_tuple=False):
         ('US/Mountain', 'US/Mountain (MST)'), ('US/Pacific', 'US/Pacific (PST)'),
         ('US/Arizona', 'US/Arizona'), ('US/Alaska', 'US/Alaska'), ('US/Hawaii', 'US/Hawaii')
     ]
-    other_tzs = set(all_timezones) - set(us_tz[0] for us_tz in us_tzs)
+    other_tzs = set(common_timezones) - set(us_tz[0] for us_tz in us_tzs)
     all_tzs = us_tzs + [(tz, tz) for tz in other_tzs]
 
     # Attach GMT values to the display names of the tzs
