@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+2.4.1
+-----
+* Updated the get_time_zone() helper method with pytz.all_timezones
+
 2.4.0
 -----
 * Added related object relation and object-level handling 

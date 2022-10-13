@@ -1,3 +1,4 @@
+import pytz
 from django.test import TestCase, SimpleTestCase
 from freezegun import freeze_time
 
@@ -28,6 +29,25 @@ class TimeHelperTestCase(TestCase):
 
         self.assertEqual(time_zones[0][0], 'US/Eastern')
         self.assertEqual(time_zones[0][1], 'US/Eastern (EST) (GMT -5)')
+
+    def test_get_timezones_contains_all_timezones(self):
+        """
+        Ensures that the get_timezones method returns pytz.all_timezones rather than pytz.common_timezones
+        """
+        # get a set of all_timezones from pytz
+        timezones_all_pytz = set(pytz.all_timezones)
+
+        # get the actual timezones we are returning
+        timezones_actual = get_time_zones(return_as_tuple=False)
+        timezones_actual_set = set()
+
+        # grab the appropriate timezone format for comparison
+        [timezones_actual_set.add(item['id']) for item in timezones_actual]
+
+        # grab the timezones that exist in pytz.all_timezones but don't exist in the actual timezones set
+        timezones_difference = timezones_all_pytz.difference(timezones_actual_set)
+
+        self.assertEqual(len(timezones_difference), 0)
 
 
 class TestWeekday(SimpleTestCase):
