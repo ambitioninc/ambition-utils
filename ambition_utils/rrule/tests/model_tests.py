@@ -1,9 +1,9 @@
 import datetime
 
 import pytz
-from dateutil import rrule
-from django_dynamic_fixture import G
+from dateutil import rrule, parser
 from django.test import TestCase
+from django_dynamic_fixture import G
 from freezegun import freeze_time
 
 from ambition_utils.rrule.constants import RecurrenceEnds
@@ -17,6 +17,7 @@ class MockHandler(OccurrenceHandler):
     """
     Mack handler for handling an occurrence during testing
     """
+
     def handle(self, rrule):
         return True
 
@@ -897,7 +898,6 @@ class RRuleTest(TestCase):
 
         # Save the rrule with a current time before the first occurrence
         with freeze_time('1-1-2016'):
-
             # Change the start date to a future date
             rule.rrule_params['dtstart'] = datetime.datetime(2018, 1, 1)
             rule.refresh_next_occurrence()
@@ -1076,7 +1076,7 @@ class RRuleTest(TestCase):
             'repeat_by': 'DAY_OF_THE_WEEK_END',
             'bynweekday': '[[0, -2]]'
         }
-        
+
         # Form is used to flex the bynweeday to byweekday + bysetpos conversion that occurs in its save().
         form = RecurrenceForm(data=data)
         self.assertTrue(form.is_valid())
@@ -1091,3 +1091,60 @@ class RRuleTest(TestCase):
         self.assertEqual(rule.next_occurrence.strftime(format), '2022-06-20')
         self.assertEqual(future_clone.next_occurrence.strftime(format), '2022-06-22')
         self.assertEqual(past_clone.next_occurrence.strftime(format), '2022-06-18')
+
+    @freeze_time('6-15-2022')
+    def test_clone_with_day_offset_with_finish_date(self):
+        """
+        Assert that the 'until' param is offset correctly
+        """
+
+        rule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'dtstart': datetime.datetime(2022, 10, 15),
+                'until': datetime.datetime(2022, 10, 17)
+            }
+        )
+
+        future_clone = rule.clone_with_day_offset(1)
+        past_clone = rule.clone_with_day_offset(-1)
+
+        # Assert the updated until values are correct
+        self.assertEqual(
+            parser.parse(rule.rrule_params['until']) + datetime.timedelta(days=1),
+            parser.parse(future_clone.rrule_params['until'])
+        )
+        self.assertEqual(
+            parser.parse(rule.rrule_params['until']) - datetime.timedelta(days=1),
+            parser.parse(past_clone.rrule_params['until'])
+        )
+
+        # Assert the generated dates are as expected for the original.
+        self.assertEqual(
+            rule.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 15),
+                datetime.datetime(2022, 10, 16),
+                datetime.datetime(2022, 10, 17)
+            ]
+        )
+
+        # One day after each date in the regular series.
+        self.assertEqual(
+            future_clone.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 16),
+                datetime.datetime(2022, 10, 17),
+                datetime.datetime(2022, 10, 18)
+            ]
+        )
+
+        # One day before each date in the regular series.
+        self.assertEqual(
+            past_clone.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 14),
+                datetime.datetime(2022, 10, 15),
+                datetime.datetime(2022, 10, 16)
+            ]
+        )
