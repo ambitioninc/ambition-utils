@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+2.5.3
+-----
+* Fixed cloning when until param is present
+
 2.5.2
 -----
 * Fixed cloning with bynweekday data
