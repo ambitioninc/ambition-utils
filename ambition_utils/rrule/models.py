@@ -371,6 +371,10 @@ class RRule(models.Model):
         clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)
         clone.next_occurrence = clone.next_occurrence + timedelta(days=day_offset)
 
+        # Update until param by offsetting if it exists
+        if 'until' in clone.rrule_params:
+            clone.rrule_params['until'] = parser.parse(clone.rrule_params['until']) + timedelta(days=day_offset)
+
         def offset_day(day, day_offset):
             """
             Calculates a day offset by a number of days.
