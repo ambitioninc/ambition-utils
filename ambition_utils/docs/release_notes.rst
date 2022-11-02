@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+2.6.3
+-----
+* generate_dates(start_date=) to generate dates after start_date.
+
 2.5.3
 -----
 * Fixed cloning when until param is present
