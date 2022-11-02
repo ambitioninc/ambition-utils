@@ -313,9 +313,9 @@ class RRule(models.Model):
         # Call the parent save method
         super().save(*args, **kwargs)
 
-    def generate_dates(self, num_dates=20):
+    def generate_dates(self, num_dates=20, start_date=None):
         """
-        Generate the first num_dates dates of the recurrence and return a list of datetimes
+        Return a list of the next num_dates datetimes of the recurrence, after the start date (if defined).
         """
         assert num_dates > 0
 
@@ -330,16 +330,20 @@ class RRule(models.Model):
             # Convert to time zone
             date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
             date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
-            dates.append(date_in_utc)
-
-            for x in range(0, num_dates):
+            
+            if not start_date or date_in_utc > start_date:
+                dates.append(date_in_utc)
+            
+            while len(dates) < num_dates:
                 d = rule.after(d)
                 if not d:
                     break
                 # Convert to time zone
                 date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
                 date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
-                dates.append(date_in_utc)
+
+                if not start_date or date_in_utc > start_date:
+                    dates.append(date_in_utc)
         except Exception:  # pragma: no cover
             pass
 
@@ -396,9 +400,9 @@ class RRule(models.Model):
         return clone
 
     @classmethod
-    def generate_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20):
+    def generate_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20, start_date=None):
         time_zone = time_zone or pytz.utc
         rule = cls(rrule_params=rrule_params, time_zone=time_zone)
 
-        return rule.generate_dates(num_dates=num_dates)
+        return rule.generate_dates(num_dates=num_dates, start_date=start_date)
 

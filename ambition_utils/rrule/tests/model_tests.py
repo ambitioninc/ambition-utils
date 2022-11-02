@@ -625,6 +625,32 @@ class RRuleTest(TestCase):
         # Get next dates to compare against
         more_next_dates = rule.generate_dates()
         self.assertEqual(next_dates, more_next_dates)
+        
+    def test_generate_dates_with_start_date(self):
+        """
+        Test a date generation with a start date.
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1, 22),
+            'bymonthday': -1,
+        }
+
+        rule = RRule(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+        next_dates = rule.generate_dates(num_dates=10, start_date=datetime.datetime(2018, 1, 2))
+        
+        # Check a few dates
+        self.assertEqual(len(next_dates), 10)
+        self.assertEqual(next_dates[0], datetime.datetime(2018, 2, 1, 3))
+        self.assertEqual(next_dates[1], datetime.datetime(2018, 3, 1, 3))
+        self.assertEqual(next_dates[2], datetime.datetime(2018, 4, 1, 2))
+        self.assertEqual(next_dates[3], datetime.datetime(2018, 5, 1, 2))
+        self.assertEqual(next_dates[4], datetime.datetime(2018, 6, 1, 2))
 
     def test_generate_dates_from_params(self):
         """
@@ -643,14 +669,18 @@ class RRuleTest(TestCase):
             time_zone=pytz.timezone('US/Eastern'),
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
         )
-        next_dates = rule.generate_dates(num_dates=3)
+        next_dates = rule.generate_dates(
+            num_dates=3, 
+            start_date=datetime.datetime(2017, 2, 2, 22)
+        )
 
         next_dates_from_params = RRule.generate_dates_from_params(
             rrule_params=params,
             time_zone=pytz.timezone('US/Eastern'),
             num_dates=3,
+            start_date=datetime.datetime(2017, 2, 2, 22)
         )
-
+        
         self.assertEqual(next_dates, next_dates_from_params)
 
     def test_model_different_time_zone_end_of_month_generate_dates(self):
@@ -1030,7 +1060,6 @@ class RRuleTest(TestCase):
                 datetime.datetime(2022, 6, 24),  # Friday
                 datetime.datetime(2022, 6, 27),  # Monday
                 datetime.datetime(2022, 6, 29),  # Wednesday
-                datetime.datetime(2022, 7, 1),   # Friday
             ]
         )
 
@@ -1042,7 +1071,6 @@ class RRuleTest(TestCase):
                 datetime.datetime(2022, 6, 26),  # Sunday
                 datetime.datetime(2022, 6, 29),  # Wednesday
                 datetime.datetime(2022, 7, 1),   # Friday
-                datetime.datetime(2022, 7, 3),   # Sunday
             ]
         )
 
@@ -1054,7 +1082,6 @@ class RRuleTest(TestCase):
                 datetime.datetime(2022, 6, 22),  # Wednesday
                 datetime.datetime(2022, 6, 25),  # Saturday
                 datetime.datetime(2022, 6, 27),  # Monday
-                datetime.datetime(2022, 6, 29),  # Wednesday
             ]
         )
 
