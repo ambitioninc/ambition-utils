@@ -1,4 +1,5 @@
 import datetime
+import fleming
 
 import pytz
 from dateutil import rrule, parser
@@ -409,6 +410,59 @@ class RRuleTest(TestCase):
 
         # Coverage for returning early
         self.assertEqual(rule.update_next_occurrence(), None)
+
+    def test_get_next_occurrence_dst(self):
+        """
+        What happens across DST changes?
+        """
+
+        # Create the params to create the rule
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2022, 10, 29),
+            'until': datetime.datetime(2022, 11, 1),
+            'byhour': 10,
+        }
+        
+        timezone = pytz.timezone('Europe/Kiev')
+        format = '%Y-%m-%d %H:%M'
+
+        # Create the rule
+        rule = RRule.objects.create(
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            time_zone=timezone,
+        )
+
+        # Assert the initial values
+        # Europe/Kiev is UTC + 3 prior to 10/30/22. (10 meeting is 7 UTC.)
+        self.assertEqual(rule.last_occurrence, None)
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 10, 29, 7))
+        self.assertEqual(
+            fleming.convert_to_tz(rule.next_occurrence, timezone).strftime(format),
+            '2022-10-29 10:00'
+        )
+
+        # Notice next occurrence jumps to UTC + 2 to reflect change from DST on early hours of 10/30.
+        # Notice the converted date is still the expected 10am.
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2022, 10, 29, 7))
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 10, 30, 8))
+        self.assertEqual(
+            fleming.convert_to_tz(rule.next_occurrence, timezone).strftime(format),
+            '2022-10-30 10:00'
+        )
+
+        # Notice UTC + 2 is here to stay.
+        # Notice the converted date is still the expected 10am.
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2022, 10, 30, 8))
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 10, 31, 8))
+        self.assertEqual(
+            fleming.convert_to_tz(rule.next_occurrence, timezone).strftime(format),
+            '2022-10-31 10:00'
+        )
 
     def test_model_default_time_zone(self):
         params = {
