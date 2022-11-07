@@ -1202,3 +1202,44 @@ class RRuleTest(TestCase):
                 datetime.datetime(2022, 10, 16)
             ]
         )
+
+    @freeze_time('10-31-2022')
+    def test_clone_with_day_offset_across_dst(self):
+        """
+        Assert that the resulting recurrence next occurrence reflects *its* timezone offset. 
+        """
+
+        rule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'dtstart': datetime.datetime(2022, 10, 29, 10),
+                'until': datetime.datetime(2022, 11, 1, 10),
+            },
+            time_zone=pytz.timezone('Europe/Kiev')
+        )
+       
+        # Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
+        self.assertEqual(
+            rule.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 29, 7),
+                datetime.datetime(2022, 10, 30, 8),
+                datetime.datetime(2022, 10, 31, 8),
+                datetime.datetime(2022, 11, 1, 8),
+            ]
+        )
+
+        # Europe/Kiev goes to standard time (UTC+2) in the early hours of 1/30.
+        # This offset should result in a datetime (UTC+3).
+        past_clone = rule.clone_with_day_offset(-1)
+
+        # One day before each date in the regular series.
+        self.assertEqual(
+            past_clone.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 28, 7),
+                datetime.datetime(2022, 10, 29, 7),
+                datetime.datetime(2022, 10, 30, 8),
+                datetime.datetime(2022, 10, 31, 8),
+            ]
+        )
