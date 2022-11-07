@@ -324,26 +324,31 @@ class RRule(models.Model):
         dates = []
 
         rule = self.get_rrule()
-
-        try:
-            d = rule[0]
-            # Convert to time zone
-            date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
+        
+        def append_date(date):
+            """
+            Appends date, in UTC, to list if it satisfies start_date logic.
+            """
+            date_with_tz = fleming.attach_tz_if_none(date, self.time_zone)
             date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
-            
+
             if not start_date or date_in_utc > start_date:
                 dates.append(date_in_utc)
-            
+
+        try:
+            # Capture, and append, the rule's first date for .after() considering in the loop.
+            d = rule[0]
+            append_date(d)
+
+            # Continue appending dates to satisfy desired number, retaining .after() date
+            # for evaluation in the next iteration.
             while len(dates) < num_dates:
                 d = rule.after(d)
-                if not d:
+                if d:
+                    append_date(d)
+                else:
                     break
-                # Convert to time zone
-                date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
-                date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
-
-                if not start_date or date_in_utc > start_date:
-                    dates.append(date_in_utc)
+                    
         except Exception:  # pragma: no cover
             pass
 
