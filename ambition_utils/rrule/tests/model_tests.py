@@ -643,8 +643,6 @@ class RRuleTest(TestCase):
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
         )
         next_dates = rule.generate_dates(num_dates=10, start_date=datetime.datetime(2018, 1, 2))
-        import pprint
-        pprint.pprint(next_dates)
         
         # Check a few dates
         self.assertEqual(len(next_dates), 10)
