@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-2.6.3
+2.6.0
 -----
 * generate_dates(start_date=) to generate dates after start_date.
 
