@@ -12,6 +12,10 @@ from manager_utils import bulk_update
 from timezone_field import TimeZoneField
 import copy
 import pytz
+import logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 class RRuleManager(models.Manager):
@@ -313,7 +317,7 @@ class RRule(models.Model):
         # Call the parent save method
         super().save(*args, **kwargs)
 
-    def generate_dates(self, num_dates=20, start_date=None):
+    def get_dates(self, num_dates=20, start_date=None):
         """
         Return a list of the next num_dates datetimes of the recurrence, after the start date (if defined).
         """
@@ -353,6 +357,14 @@ class RRule(models.Model):
             pass
 
         return dates
+
+    def generate_dates(self, num_dates=20):
+        """
+        DEPRECATED. Replaced by get_dates.
+        Return a list of the next num_dates datetimes of the recurrence.
+        """
+        LOG.warning('generate_dates has been replaced by get_dates and will be removed in version 3.x.')
+        return self.get_dates(num_dates)
 
     def clone(self) -> RRule:
         """
@@ -405,9 +417,18 @@ class RRule(models.Model):
         return clone
 
     @classmethod
-    def generate_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20, start_date=None):
+    def get_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20, start_date=None):
         time_zone = time_zone or pytz.utc
         rule = cls(rrule_params=rrule_params, time_zone=time_zone)
 
-        return rule.generate_dates(num_dates=num_dates, start_date=start_date)
+        return rule.get_dates(num_dates=num_dates, start_date=start_date)
 
+    @classmethod
+    def generate_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20):
+        """
+        DEPRECATED. Replaced by get_dates_from_params. 
+        """
+        LOG.warning(
+            'generate_dates_from_params has been replaced by get_dates_from_params and will be removed in version 3.x.'
+        )
+        return cls.get_dates_from_params(rrule_params, time_zone, num_dates)
