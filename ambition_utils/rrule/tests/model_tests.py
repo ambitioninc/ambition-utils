@@ -680,7 +680,7 @@ class RRuleTest(TestCase):
             num_dates=3,
             start_date=datetime.datetime(2017, 2, 2, 22)
         )
-        
+
         self.assertEqual(next_dates, next_dates_from_params)
 
     def test_model_different_time_zone_end_of_month_generate_dates(self):
