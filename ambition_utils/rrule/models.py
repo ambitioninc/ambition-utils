@@ -360,8 +360,8 @@ class RRule(models.Model):
 
     def clone_with_day_offset(self, day_offset: int) -> RRule:
         """
-        Creates a clone of a passed RRule object offset by a specified number of days.
-        Days can be negative.
+        Creates a clone of a passed RRule object offset by a specified number of days
+        :param day_offset: The number of days to offset the clone's start date. Can be negative.
         """
 
         # Create a clone of itself
@@ -375,9 +375,11 @@ class RRule(models.Model):
         if 'until' in clone.rrule_params:
             clone.rrule_params['until'] = parser.parse(clone.rrule_params['until']) + timedelta(days=day_offset)
 
-        def offset_day(day, day_offset):
+        def offset_day(day: int) -> int:
             """
-            Calculates a day offset by a number of days.
+            Calculates the representation of a given day of the week plus the provided offset
+            For example, Tuesday (1) - 3 days yields Saturday (5).
+            :param int day: 0-6 that corresponds to RRule's weekday constants, MO-SU.
             """
             return (7 + (day + day_offset)) % 7
 
@@ -385,7 +387,7 @@ class RRule(models.Model):
         if 'byweekday' in clone.rrule_params:
             if isinstance(clone.rrule_params['byweekday'], list):
                 clone.rrule_params['byweekday'] = [
-                    offset_day(day, day_offset) for day in clone.rrule_params['byweekday']
+                    offset_day(day) for day in clone.rrule_params['byweekday']
                 ]
             else:
                 clone.rrule_params['byweekday'] = offset_day(clone.rrule_params['byweekday'], day_offset)
