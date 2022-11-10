@@ -1204,7 +1204,7 @@ class RRuleTest(TestCase):
         )
 
     @freeze_time('10-31-2022')
-    def test_clone_with_day_offset_across_dst(self):
+    def test_clone_with_future_days_across_dst(self):
         """
         Assert that the resulting recurrence next occurrence reflects *its* timezone offset. 
         """
@@ -1234,6 +1234,47 @@ class RRuleTest(TestCase):
         past_clone = rule.clone_with_day_offset(-1)
 
         # One day before each date in the regular series.
+        self.assertEqual(
+            past_clone.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 28, 7),
+                datetime.datetime(2022, 10, 29, 7),
+                datetime.datetime(2022, 10, 30, 8),
+                datetime.datetime(2022, 10, 31, 8),
+            ]
+        )
+
+    @freeze_time('10-31-2022')
+    def test_clone_with_offset_before_dst(self):
+        """
+        Assert that a clone, with a negative offset that puts it in DST, results in dates that respect the
+        DST transition once it gets there.
+        Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
+        """
+
+        # Starting in standard time
+        rule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'dtstart': datetime.datetime(2022, 10, 31, 10),
+                'until': datetime.datetime(2022, 11, 3, 10),
+            },
+            time_zone=pytz.timezone('Europe/Kiev')
+        )
+
+        # Times are UTC+2 because it is after the 10/30 transition.
+        self.assertEqual(
+            rule.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 31, 8),
+                datetime.datetime(2022, 11, 1, 8),
+                datetime.datetime(2022, 11, 2, 8),
+                datetime.datetime(2022, 11, 3, 8),
+            ]
+        )
+
+        # Clone prior to the DST switch and ensure the times transition between 10/30 & 10/31.
+        past_clone = rule.clone_with_day_offset(-3)
         self.assertEqual(
             past_clone.generate_dates(),
             [
