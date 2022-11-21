@@ -328,18 +328,20 @@ class RRule(models.Model):
 
         self.pre_save_hooks()
 
-        dates = []
+
+        # Capture the rule's first date for use in RRule.after() in the loop.
         rule = self.get_rrule()
+        d = rule[0]
+
+        # Evaluate if the first date should be retained.
+        dates = []
+        date_in_utc = self.convert_to_utc(rule[0])
+        if not start_date or date_in_utc > start_date:
+            dates.append(date_in_utc)
 
         try:
-            # Capture, and append, the rule's first date for .after() consideration in the loop.
-            d = rule[0]
-            date_in_utc = self.convert_to_utc(d)
-            if not start_date or date_in_utc > start_date:
-                dates.append(date_in_utc)
-
-            # Continue appending dates to satisfy desired number, retaining .after() date
-            # for evaluation in the next iteration.
+            # Continue evaluating and appending dates to satisfy desired number,
+            # retaining .after() date for evaluation in the next iteration.
             while len(dates) < num_dates:
                 d = rule.after(d)
                 if d:
