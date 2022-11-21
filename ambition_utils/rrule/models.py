@@ -317,39 +317,35 @@ class RRule(models.Model):
         # Call the parent save method
         super().save(*args, **kwargs)
 
-    def get_dates(self, num_dates=20, start_date=None):
+    def get_dates(self, num_dates=20, start_date=None) -> List[datetime]:
         """
-        Return a list of the next num_dates datetimes of the recurrence, after the start date (if defined).
+        Return a list of datetime objects the recurrence will generate, after the start date (if defined).
+        :param num_dates: The number of dates to calculate
+        :param start_date: The optional start date to begin generating dates after
+        :return: A list of datetime objects
         """
         assert num_dates > 0
 
         self.pre_save_hooks()
 
         dates = []
-
         rule = self.get_rrule()
-        
-        def append_date(date):
-            """
-            Appends date, in UTC, to list if it satisfies start_date logic.
-            """
-            date_with_tz = fleming.attach_tz_if_none(date, self.time_zone)
-            date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
-
-            if not start_date or date_in_utc > start_date:
-                dates.append(date_in_utc)
 
         try:
-            # Capture, and append, the rule's first date for .after() considering in the loop.
+            # Capture, and append, the rule's first date for .after() consideration in the loop.
             d = rule[0]
-            append_date(d)
+            date_in_utc = self.convert_to_utc(d)
+            if not start_date or date_in_utc > start_date:
+                dates.append(date_in_utc)
 
             # Continue appending dates to satisfy desired number, retaining .after() date
             # for evaluation in the next iteration.
             while len(dates) < num_dates:
                 d = rule.after(d)
                 if d:
-                    append_date(d)
+                    date_in_utc = self.convert_to_utc(d)
+                    if not start_date or date_in_utc > start_date:
+                        dates.append(date_in_utc)
                 else:
                     break
                     
