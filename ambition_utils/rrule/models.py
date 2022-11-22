@@ -10,6 +10,7 @@ from django.utils.module_loading import import_string
 from fleming import fleming
 from manager_utils import bulk_update
 from timezone_field import TimeZoneField
+from typing import List
 import copy
 import pytz
 import logging
@@ -320,7 +321,7 @@ class RRule(models.Model):
     def get_dates(self, num_dates=20, start_date=None) -> List[datetime]:
         """
         Return a list of datetime objects the recurrence will generate, after the start date (if defined).
-        :param num_dates: The number of dates to calculate
+        :param num_dates: The maximum number of dates to calculate. Will stop at passed start_date
         :param start_date: The optional start date to begin generating dates after
         :return: A list of datetime objects
         """
@@ -333,21 +334,19 @@ class RRule(models.Model):
         try:
             # Capture the rule's first date for use in RRule.after() in the loop.
             rule = self.get_rrule()
-            d = rule[0]
 
             # Evaluate if the first date should be retained.
-            date_in_utc = self.convert_to_utc(rule[0])
-            if not start_date or date_in_utc > start_date:
-                dates.append(date_in_utc)
+            d = self.convert_to_utc(rule[0])
+            if not start_date or d > start_date:
+              dates.append(d)
 
             # Continue evaluating and appending dates to satisfy desired number,
-            # retaining .after() date for evaluation in the next iteration.
+            # retaining date for evaluation in the next iteration.
             while len(dates) < num_dates:
-                d = rule.after(d)
+                d = self.get_next_occurrence(last_occurrence=d)
                 if d:
-                    date_in_utc = self.convert_to_utc(d)
-                    if not start_date or date_in_utc > start_date:
-                        dates.append(date_in_utc)
+                    if not start_date or d > start_date:
+                        dates.append(d)
                 else:
                     break
                     

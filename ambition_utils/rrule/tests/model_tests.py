@@ -1,5 +1,6 @@
 import datetime
 
+from fleming import fleming
 import pytz
 from dateutil import rrule, parser
 from django.test import TestCase
@@ -618,14 +619,14 @@ class RRuleTest(TestCase):
         
     def test_get_dates(self):
         """
-        Test a monthly first day of month rule to catch case of converting tz back using the get_dates method
+        Test a monthly 1st day of month rule to catch case of converting tz back using the get_dates method
         """
         params = {
             'freq': rrule.MONTHLY,
             'interval': 1,
-            'dtstart': datetime.datetime(2017, 1, 1, 22),
-            'bymonthday': -1,
-            'until': datetime.datetime(2017, 5, 1, 22),
+            'dtstart': datetime.datetime(2016, 12, 31),
+            'bymonthday': 1,
+            'until': datetime.datetime(2017, 4, 30),
         }
 
         rule = RRule(
@@ -637,10 +638,11 @@ class RRuleTest(TestCase):
 
         # Check a few dates
         self.assertEqual(len(next_dates), 4)
-        self.assertEqual(next_dates[0], datetime.datetime(2017, 2, 1, 3))
-        self.assertEqual(next_dates[1], datetime.datetime(2017, 3, 1, 3))
-        self.assertEqual(next_dates[2], datetime.datetime(2017, 4, 1, 2))
-        self.assertEqual(next_dates[3], datetime.datetime(2017, 5, 1, 2))
+
+        self.assertEqual(next_dates[0], datetime.datetime(2017, 1, 1, 5))
+        self.assertEqual(next_dates[1], datetime.datetime(2017, 2, 1, 5))
+        self.assertEqual(next_dates[2], datetime.datetime(2017, 3, 1, 5))
+        self.assertEqual(next_dates[3], datetime.datetime(2017, 4, 1, 4))  # DST change for US/Eastern
 
         # Run pre save again to make sure it doesn't mess up params
         rule.pre_save_hooks()
@@ -656,8 +658,8 @@ class RRuleTest(TestCase):
         params = {
             'freq': rrule.MONTHLY,
             'interval': 1,
-            'dtstart': datetime.datetime(2017, 1, 1, 22),
-            'bymonthday': -1,
+            'dtstart': datetime.datetime(2016, 12, 31),
+            'bymonthday': 1,
         }
 
         rule = RRule(
@@ -665,16 +667,44 @@ class RRuleTest(TestCase):
             time_zone=pytz.timezone('US/Eastern'),
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
         )
-        next_dates = rule.get_dates(num_dates=10, start_date=datetime.datetime(2018, 1, 2))
-        
+        next_dates = rule.get_dates(num_dates=10, start_date=datetime.datetime(2018, 1, 1))
+
         # Check a few dates
         self.assertEqual(len(next_dates), 10)
-        self.assertEqual(next_dates[0], datetime.datetime(2018, 2, 1, 3))
-        self.assertEqual(next_dates[1], datetime.datetime(2018, 3, 1, 3))
-        self.assertEqual(next_dates[2], datetime.datetime(2018, 4, 1, 2))
-        self.assertEqual(next_dates[3], datetime.datetime(2018, 5, 1, 2))
-        self.assertEqual(next_dates[4], datetime.datetime(2018, 6, 1, 2))
-        
+        self.assertEqual(next_dates[0], datetime.datetime(2018, 1, 1, 5))
+        self.assertEqual(next_dates[1], datetime.datetime(2018, 2, 1, 5))
+        self.assertEqual(next_dates[2], datetime.datetime(2018, 3, 1, 5))
+        self.assertEqual(next_dates[3], datetime.datetime(2018, 4, 1, 4))  # DST change for US/Eastern
+        self.assertEqual(next_dates[-1], datetime.datetime(2018, 10, 1, 4))
+
+    def test_get_dates_num_dates_greater(self):
+        """
+        Test a date generation with a start date and end date that will yield fewer dates than num_dates.
+        Daily from 1/1 to 1/10 is 10. Request default of 20 but only after 1/5 which should yield 6 dates, inclusive.
+        """
+        rule = RRule(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2017, 1, 1),
+                'until': datetime.datetime(2017, 1, 10),
+            },
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
+        )
+        next_dates = rule.get_dates(
+            num_dates=20,
+            start_date=datetime.datetime(2017, 1, 5)
+        )
+
+        self.assertEqual(len(next_dates), 6)
+        self.assertEqual(next_dates[0], datetime.datetime(2017, 1, 5, 5))
+        self.assertEqual(next_dates[1], datetime.datetime(2017, 1, 6, 5))
+        self.assertEqual(next_dates[2], datetime.datetime(2017, 1, 7, 5))
+        self.assertEqual(next_dates[3], datetime.datetime(2017, 1, 8, 5))
+        self.assertEqual(next_dates[4], datetime.datetime(2017, 1, 9, 5))
+        self.assertEqual(next_dates[5], datetime.datetime(2017, 1, 10, 5))
+
     def test_generate_dates_from_params(self):
         """
         Assert generate_dates_from_params returns the same values as get_dates_from_params.
@@ -1073,7 +1103,7 @@ class RRuleTest(TestCase):
         rule = RRule.objects.create(
             rrule_params={
                 'freq': rrule.WEEKLY,
-                'dtstart': datetime.datetime(2022, 6, 22),
+                'dtstart': datetime.datetime(2022, 6, 21),  # Tuesday
                 'byweekday': [0, 2, 4],
             },
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
