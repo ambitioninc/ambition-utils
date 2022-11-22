@@ -1,4 +1,5 @@
 import datetime
+import fleming
 
 import pytz
 from dateutil import rrule, parser
@@ -409,6 +410,59 @@ class RRuleTest(TestCase):
 
         # Coverage for returning early
         self.assertEqual(rule.update_next_occurrence(), None)
+
+    def test_get_next_occurrence_dst(self):
+        """
+        What happens across DST changes?
+        """
+
+        # Create the params to create the rule
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2022, 10, 29),
+            'until': datetime.datetime(2022, 11, 1),
+            'byhour': 10,
+        }
+        
+        timezone = pytz.timezone('Europe/Kiev')
+        format = '%Y-%m-%d %H:%M'
+
+        # Create the rule
+        rule = RRule.objects.create(
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            time_zone=timezone,
+        )
+
+        # Assert the initial values
+        # Europe/Kiev is UTC + 3 prior to 10/30/22. (10 Europe/Kiev meeting is 7 UTC.)
+        self.assertEqual(rule.last_occurrence, None)
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 10, 29, 7))
+        self.assertEqual(
+            fleming.convert_to_tz(rule.next_occurrence, timezone).strftime(format),
+            '2022-10-29 10:00'
+        )
+
+        # Notice next occurrence jumps to UTC + 2 to reflect change from DST on early hours of 10/30.
+        # Notice the converted date is still the expected 10am.
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2022, 10, 29, 7))
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 10, 30, 8))
+        self.assertEqual(
+            fleming.convert_to_tz(rule.next_occurrence, timezone).strftime(format),
+            '2022-10-30 10:00'
+        )
+
+        # Notice UTC + 2 is here to stay.
+        # Notice the converted date is still the expected 10am.
+        rule.update_next_occurrence()
+        self.assertEqual(rule.last_occurrence, datetime.datetime(2022, 10, 30, 8))
+        self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 10, 31, 8))
+        self.assertEqual(
+            fleming.convert_to_tz(rule.next_occurrence, timezone).strftime(format),
+            '2022-10-31 10:00'
+        )
 
     def test_model_default_time_zone(self):
         params = {
@@ -1146,5 +1200,87 @@ class RRuleTest(TestCase):
                 datetime.datetime(2022, 10, 14),
                 datetime.datetime(2022, 10, 15),
                 datetime.datetime(2022, 10, 16)
+            ]
+        )
+
+    @freeze_time('10-31-2022')
+    def test_clone_with_future_days_across_dst(self):
+        """
+        Assert that the resulting recurrence next occurrence reflects *its* timezone offset. 
+        """
+
+        rule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'dtstart': datetime.datetime(2022, 10, 29, 10),
+                'until': datetime.datetime(2022, 11, 1, 10),
+            },
+            time_zone=pytz.timezone('Europe/Kiev')
+        )
+       
+        # Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
+        self.assertEqual(
+            rule.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 29, 7),
+                datetime.datetime(2022, 10, 30, 8),
+                datetime.datetime(2022, 10, 31, 8),
+                datetime.datetime(2022, 11, 1, 8),
+            ]
+        )
+
+        # Europe/Kiev goes to standard time (UTC+2) in the early hours of 1/30.
+        # This offset should result in a datetime (UTC+3).
+        past_clone = rule.clone_with_day_offset(-1)
+
+        # One day before each date in the regular series.
+        self.assertEqual(
+            past_clone.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 28, 7),
+                datetime.datetime(2022, 10, 29, 7),
+                datetime.datetime(2022, 10, 30, 8),
+                datetime.datetime(2022, 10, 31, 8),
+            ]
+        )
+
+    @freeze_time('10-31-2022')
+    def test_clone_with_offset_before_dst(self):
+        """
+        Assert that a clone, with a negative offset that puts it in DST, results in dates that respect the
+        DST transition once it gets there.
+        Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
+        """
+
+        # Starting in standard time
+        rule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'dtstart': datetime.datetime(2022, 10, 31, 10),
+                'until': datetime.datetime(2022, 11, 3, 10),
+            },
+            time_zone=pytz.timezone('Europe/Kiev')
+        )
+
+        # Times are UTC+2 because it is after the 10/30 transition.
+        self.assertEqual(
+            rule.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 31, 8),
+                datetime.datetime(2022, 11, 1, 8),
+                datetime.datetime(2022, 11, 2, 8),
+                datetime.datetime(2022, 11, 3, 8),
+            ]
+        )
+
+        # Clone prior to the DST switch and ensure the times transition between 10/30 & 10/31.
+        past_clone = rule.clone_with_day_offset(-3)
+        self.assertEqual(
+            past_clone.generate_dates(),
+            [
+                datetime.datetime(2022, 10, 28, 7),
+                datetime.datetime(2022, 10, 29, 7),
+                datetime.datetime(2022, 10, 30, 8),
+                datetime.datetime(2022, 10, 31, 8),
             ]
         )
