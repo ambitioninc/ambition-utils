@@ -436,7 +436,7 @@ class RRuleTest(TestCase):
         )
 
         # Assert the initial values
-        # Europe/Kiev is UTC + 3 prior to 10/30/22. (10 meeting is 7 UTC.)
+        # Europe/Kiev is UTC + 3 prior to 10/30/22. (10 Europe/Kiev meeting is 7 UTC.)
         self.assertEqual(rule.last_occurrence, None)
         self.assertEqual(rule.next_occurrence, datetime.datetime(2022, 10, 29, 7))
         self.assertEqual(
