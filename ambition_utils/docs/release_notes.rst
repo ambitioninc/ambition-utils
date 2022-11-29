@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+2.6.0
+-----
+* Added get_dates(start_date=) to calculate dates after start_date. Will replace get_dates.
+* Added get_dates_from_params(start_date=) to calculate dates after start_date from rrule_params. Will replace generate_dates_from_params.
+
 2.5.3
 -----
 * Fixed cloning when until param is present
