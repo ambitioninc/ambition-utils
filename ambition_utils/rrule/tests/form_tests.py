@@ -10,6 +10,27 @@ from ambition_utils.rrule.models import RRule
 
 
 class NestedRecurrenceFormTest(TestCase):
+    def test_daily_minutes(self):
+        for minute in [15, 47]:
+            data = {
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': '6/1/2017',
+                'byhour': '3',
+                'byminute': minute,
+                'time_zone': 'UTC',
+                'ends': RecurrenceEnds.NEVER,
+            }
+            form = RecurrenceForm(data=data)
+            self.assertTrue(form.is_valid())
+
+            rrule_model = form.save()
+            rule = rrule_model.get_rrule()
+
+            self.assertEqual(rule[0].replace(tzinfo=None), datetime.datetime(2017, 6, 1, 3, minute))
+            self.assertEqual(rule[1].replace(tzinfo=None), datetime.datetime(2017, 6, 2, 3, minute))
+            self.assertEqual(rule[365].replace(tzinfo=None), datetime.datetime(2018, 6, 1, 3, minute))
+
     def test_daily_never_ends(self):
         data = {
             'freq': rrule.DAILY,
@@ -89,6 +110,7 @@ class NestedRecurrenceFormTest(TestCase):
         self.assertFalse(form.is_valid())
 
         self.assertEqual(form.clean(), {
+            'byminute': 0,
             'bynweekday': [],
             'byweekday': [],
             'count': None,
@@ -111,11 +133,15 @@ class NestedRecurrenceFormTest(TestCase):
         self.assertFalse(form.is_valid())
 
     def test_daily_with_end_date(self):
+        """
+        Assert dates can occur on the last day up till the recurring minute.
+        """
         data = {
             'freq': rrule.DAILY,
-            'interval': 6,
+            'interval': 3,
             'dtstart': '6/1/2017',
-            'byhour': '0',
+            'byhour': '5',
+            'byminute': '30',
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.ON,
             'until': '6/10/2017',
@@ -127,10 +153,12 @@ class NestedRecurrenceFormTest(TestCase):
         rrule_model = form.save()
         rule = rrule_model.get_rrule()
 
-        self.assertEqual(rule.count(), 2)
+        self.assertEqual(rule.count(), 4)
 
-        self.assertEqual(rule[0], datetime.datetime(2017, 6, 1))
-        self.assertEqual(rule[1], datetime.datetime(2017, 6, 7))
+        self.assertEqual(rule[0], datetime.datetime(2017, 6, 1, 5, 30))
+        self.assertEqual(rule[1], datetime.datetime(2017, 6, 4, 5, 30))
+        self.assertEqual(rule[2], datetime.datetime(2017, 6, 7, 5, 30))
+        self.assertEqual(rule[3], datetime.datetime(2017, 6, 10, 5, 30))
 
     def test_missing_ends_on(self):
         """

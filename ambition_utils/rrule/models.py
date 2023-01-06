@@ -10,8 +10,13 @@ from django.utils.module_loading import import_string
 from fleming import fleming
 from manager_utils import bulk_update
 from timezone_field import TimeZoneField
+from typing import List
 import copy
 import pytz
+import logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 class RRuleManager(models.Manager):
@@ -313,9 +318,12 @@ class RRule(models.Model):
         # Call the parent save method
         super().save(*args, **kwargs)
 
-    def generate_dates(self, num_dates=20):
+    def get_dates(self, num_dates=20, start_date=None) -> List[datetime]:
         """
-        Generate the first num_dates dates of the recurrence and return a list of datetimes
+        Return a list of datetime objects the recurrence will generate, after the start date (if defined).
+        :param num_dates: The maximum number of dates to calculate. Will stop at passed start_date
+        :param start_date: The optional start date to begin generating dates after
+        :return: A list of datetime objects
         """
         assert num_dates > 0
 
@@ -323,27 +331,37 @@ class RRule(models.Model):
 
         dates = []
 
-        rule = self.get_rrule()
-
         try:
-            d = rule[0]
-            # Convert to time zone
-            date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
-            date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
-            dates.append(date_in_utc)
+            # Capture the rule's first date for use in RRule.after() in the loop.
+            rule = self.get_rrule()
 
-            for x in range(0, num_dates):
-                d = rule.after(d)
-                if not d:
+            # Evaluate if the first date should be retained.
+            d = self.convert_to_utc(rule[0])
+            if not start_date or d > start_date:
+              dates.append(d)
+
+            # Continue evaluating and appending dates to satisfy desired number,
+            # retaining date for evaluation in the next iteration.
+            while len(dates) < num_dates:
+                d = self.get_next_occurrence(last_occurrence=d)
+                if d:
+                    if not start_date or d > start_date:
+                        dates.append(d)
+                else:
                     break
-                # Convert to time zone
-                date_with_tz = fleming.attach_tz_if_none(d, self.time_zone)
-                date_in_utc = fleming.convert_to_tz(date_with_tz, pytz.utc, True)
-                dates.append(date_in_utc)
+                    
         except Exception:  # pragma: no cover
             pass
 
         return dates
+
+    def generate_dates(self, num_dates=20):
+        """
+        DEPRECATED. Replaced by get_dates.
+        Return a list of the next num_dates datetimes of the recurrence.
+        """
+        LOG.warning('generate_dates has been replaced by get_dates and will be removed in version 3.x.')
+        return self.get_dates(num_dates)
 
     def clone(self) -> RRule:
         """
@@ -360,8 +378,8 @@ class RRule(models.Model):
 
     def clone_with_day_offset(self, day_offset: int) -> RRule:
         """
-        Creates a clone of a passed RRule object offset by a specified number of days.
-        Days can be negative.
+        Creates a clone of a passed RRule object offset by a specified number of days
+        :param day_offset: The number of days to offset the clone's start date. Can be negative.
         """
 
         # Create a clone of itself
@@ -371,12 +389,26 @@ class RRule(models.Model):
         clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)
         clone.next_occurrence = clone.next_occurrence + timedelta(days=day_offset)
 
-        # Update byweekday params by offsetting each one present.
+        # Update until param by offsetting if it exists
+        if 'until' in clone.rrule_params:
+            clone.rrule_params['until'] = parser.parse(clone.rrule_params['until']) + timedelta(days=day_offset)
+
+        def offset_day(day: int) -> int:
+            """
+            Calculates the representation of a given day of the week plus the provided offset
+            For example, Tuesday (1) - 3 days yields Saturday (5).
+            :param int day: 0-6 that corresponds to RRule's weekday constants, MO-SU.
+            """
+            return (7 + (day + day_offset)) % 7
+
+        # Update byweekday param by offsetting. byweekday can be an array or integer.
         if 'byweekday' in clone.rrule_params:
-            clone.rrule_params['byweekday'] = [
-                (7 + (day + day_offset)) % 7
-                for day in clone.rrule_params['byweekday']
-            ]
+            if isinstance(clone.rrule_params['byweekday'], list):
+                clone.rrule_params['byweekday'] = [
+                    offset_day(day) for day in clone.rrule_params['byweekday']
+                ]
+            else:
+                clone.rrule_params['byweekday'] = offset_day(clone.rrule_params['byweekday'], day_offset)
 
         # Lock it.
         clone.save()
@@ -385,7 +417,10 @@ class RRule(models.Model):
 
     @classmethod
     def generate_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20):
-        time_zone = time_zone or pytz.utc
-        rule = cls(rrule_params=rrule_params, time_zone=time_zone)
-
-        return rule.generate_dates(num_dates=num_dates)
+        """
+        DEPRECATED. Replaced by get_dates_from_params.
+        """
+        LOG.warning(
+            'generate_dates_from_params has been replaced by get_dates_from_params and will be removed in version 3.x.'
+        )
+        return cls.get_dates_from_params(rrule_params, time_zone, num_dates)
