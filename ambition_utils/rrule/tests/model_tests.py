@@ -1,7 +1,6 @@
 import datetime
 import fleming
 
-from fleming import fleming
 import pytz
 from dateutil import rrule, parser
 from django.test import TestCase
@@ -463,7 +462,7 @@ class RRuleTest(TestCase):
             'until': datetime.datetime(2022, 11, 1),
             'byhour': 10,
         }
-        
+
         timezone = pytz.timezone('Europe/Kiev')
         format = '%Y-%m-%d %H:%M'
 
@@ -703,12 +702,12 @@ class RRuleTest(TestCase):
             time_zone=pytz.timezone('US/Eastern'),
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
         )
-        
+
         self.assertEqual(
             rule.get_dates(),
             rule.generate_dates()
         )
-        
+
     def test_get_dates(self):
         """
         Test a monthly 1st day of month rule to catch case of converting tz back using the get_dates method
@@ -742,7 +741,7 @@ class RRuleTest(TestCase):
         # Get next dates to compare against
         more_next_dates = rule.get_dates()
         self.assertEqual(next_dates, more_next_dates)
-        
+
     def test_get_dates_with_start_date(self):
         """
         Test a date generation with a start date.
@@ -836,7 +835,7 @@ class RRuleTest(TestCase):
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
         )
         next_dates = rule.get_dates(
-            num_dates=3, 
+            num_dates=3,
             start_date=datetime.datetime(2017, 2, 2, 22)
         )
 
@@ -1345,7 +1344,7 @@ class RRuleTest(TestCase):
     @freeze_time('10-31-2022')
     def test_clone_with_future_days_across_dst(self):
         """
-        Assert that the resulting recurrence next occurrence reflects *its* timezone offset. 
+        Assert that the resulting recurrence next occurrence reflects *its* timezone offset.
         """
 
         rule = RRule.objects.create(
@@ -1356,7 +1355,7 @@ class RRuleTest(TestCase):
             },
             time_zone=pytz.timezone('Europe/Kiev')
         )
-       
+
         # Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
         self.assertEqual(
             rule.generate_dates(),
