@@ -15,7 +15,6 @@ import copy
 import pytz
 import logging
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -23,6 +22,7 @@ class RRuleManager(models.Manager):
     """
     Custom manager for rrule objects
     """
+
     def update_next_occurrences(self, rrule_objects=None):
         if rrule_objects is None:
             return
@@ -338,7 +338,7 @@ class RRule(models.Model):
             # Evaluate if the first date should be retained.
             d = self.convert_to_utc(rule[0])
             if not start_date or d > start_date:
-              dates.append(d)
+                dates.append(d)
 
             # Continue evaluating and appending dates to satisfy desired number,
             # retaining date for evaluation in the next iteration.
@@ -349,7 +349,7 @@ class RRule(models.Model):
                         dates.append(d)
                 else:
                     break
-                    
+
         except Exception:  # pragma: no cover
             pass
 
@@ -414,6 +414,13 @@ class RRule(models.Model):
         clone.save()
 
         return clone
+
+    @classmethod
+    def get_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20, start_date=None):
+        time_zone = time_zone or pytz.utc
+        rule = cls(rrule_params=rrule_params, time_zone=time_zone)
+
+        return rule.get_dates(num_dates=num_dates, start_date=start_date)
 
     @classmethod
     def generate_dates_from_params(cls, rrule_params, time_zone=None, num_dates=20):
