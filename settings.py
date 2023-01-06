@@ -31,6 +31,9 @@ def configure_settings():
         else:
             raise RuntimeError('Unsupported test DB {0}'.format(test_db))
 
+        print('which db?')
+        print(db_config)
+
         # Check env for db override (used for github actions)
         if os.environ.get('DB_SETTINGS'):
             db_config = json.loads(os.environ.get('DB_SETTINGS'))
