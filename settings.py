@@ -35,9 +35,6 @@ def configure_settings():
         if os.environ.get('DB_SETTINGS'):
             db_config = json.loads(os.environ.get('DB_SETTINGS'))
 
-        print('which db?')
-        print(db_config)
-
         settings.configure(
             TEST_RUNNER='django_nose.NoseTestSuiteRunner',
             SECRET_KEY='*',
@@ -51,11 +48,11 @@ def configure_settings():
                 'django.contrib.auth',
                 'django.contrib.contenttypes',
                 'ambition_utils',
-                # 'ambition_utils.tests',
-                # 'ambition_utils.activity',
-                # 'ambition_utils.anomaly',
-                # 'ambition_utils.anomaly.tests',
-                # 'ambition_utils.postgres_lock',
+                'ambition_utils.tests',
+                'ambition_utils.activity',
+                'ambition_utils.anomaly',
+                'ambition_utils.anomaly.tests',
+                'ambition_utils.postgres_lock',
                 'ambition_utils.rrule',
                 'ambition_utils.rrule.tests',
             ),
