@@ -408,7 +408,7 @@ class RRule(models.Model):
                     offset_day(day) for day in clone.rrule_params['byweekday']
                 ]
             else:
-                clone.rrule_params['byweekday'] = offset_day(clone.rrule_params['byweekday'], day_offset)
+                clone.rrule_params['byweekday'] = offset_day(clone.rrule_params['byweekday'])
 
         # Lock it.
         clone.save()
