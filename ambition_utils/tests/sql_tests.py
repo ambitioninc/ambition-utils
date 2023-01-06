@@ -7,10 +7,10 @@ from ambition_utils.sql import StringSQL, FileSQL, queryset_to_sql
 
 class TestSQL(TestCase):
     def setUp(self):
-        self.simple_query = 'SELECT * FROM tests_fakemodel;'
-        self.param_query = 'SELECT * FROM tests_fakemodel WHERE name=%(name)s;'
+        self.simple_query = 'SELECT * FROM ambition_utils_tests_fakemodel;'
+        self.param_query = 'SELECT * FROM ambition_utils_tests_fakemodel WHERE name=%(name)s;'
         self.context_query = 'SELECT * FROM {{table}};'
-        self.insert_query = "INSERT INTO tests_fakemodel (id, name) VALUES (DEFAULT, 'newname')"
+        self.insert_query = "INSERT INTO ambition_utils_tests_fakemodel (id, name) VALUES (DEFAULT, 'newname')"
         for nn in range(1, 4):
             FakeModel(name=f'n_{nn}').save()
 
@@ -39,7 +39,7 @@ class TestSQL(TestCase):
 
     def test_context_dicts(self):
         sql = StringSQL(self.context_query)
-        sql.with_context(dict(table='tests_fakemodel'))
+        sql.with_context(dict(table='ambition_utils_tests_fakemodel'))
         tups = sql.to_dicts()
         self.assertEqual({t['name'] for t in tups}, {'n_1', 'n_2', 'n_3'})
 
