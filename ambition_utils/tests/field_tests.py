@@ -1,6 +1,5 @@
 import pytz
 from django.test import TestCase
-from timezone_field.fields import TimeZoneField as BaseTimeZoneField
 
 from ambition_utils.fields import TimeZoneField
 from ambition_utils.tests.models import FakeModel
