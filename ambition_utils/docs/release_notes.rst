@@ -9,6 +9,9 @@ Release Notes
 * Add support for Django 3.0, 3.1, 3.2, 4.0, 4.1
 * Drop support for django 2.0, 2.1
 * Switch to github actions
+* Switched from ambition timezone field package to the main timezone field and set the requirement to < 5
+* Added the cast-on-assignment behavior to this project as a mixin for models
+* Added a subclass of timezone field which uses the cast-on-assign behavior
 
 2.6.0
 -----
