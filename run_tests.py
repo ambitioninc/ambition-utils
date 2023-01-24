@@ -14,7 +14,7 @@ configure_settings()
 from django_nose import NoseTestSuiteRunner
 
 
-def run(*test_args, **kwargs):
+def run_tests(*test_args, **kwargs):
     if not test_args:
         test_args = ['ambition_utils']
 
