@@ -1,7 +1,6 @@
 import datetime
 import fleming
 
-from fleming import fleming
 import pytz
 from dateutil import rrule, parser
 from django.test import TestCase
@@ -268,6 +267,44 @@ class RRuleTest(TestCase):
             self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
             self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 17))
 
+    def test_related_object_handlers_invalid_handler(self):
+        """
+        Hits the else block when the handler path is not valid
+        """
+        program = Program.objects.create(name='Program 1')
+        start_rrule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 9),
+                'byhour': 9,
+            },
+            related_object=program,
+            related_object_handler_name='handle_start_recurrence_fake',
+        )
+        end_rrule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 17),
+                'byhour': 17,
+            },
+            related_object=program,
+            related_object_handler_name='handle_end_recurrence_fake',
+        )
+        program.start_recurrence = start_rrule
+        program.end_recurrence = end_rrule
+        program.save()
+
+        # Make sure handlers are not called before date
+        with freeze_time(datetime.datetime(2022, 7, 31)):
+            RRule.objects.handle_overdue()
+
+        # Occurrences should not be progressed
+        program = Program.objects.get(id=program.id)
+        self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 9))
+        self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 17))
+
     def test_get_time_zone_object_none(self):
         """
         Should return utc when time zone is null
@@ -425,7 +462,7 @@ class RRuleTest(TestCase):
             'until': datetime.datetime(2022, 11, 1),
             'byhour': 10,
         }
-        
+
         timezone = pytz.timezone('Europe/Kiev')
         format = '%Y-%m-%d %H:%M'
 
@@ -665,12 +702,12 @@ class RRuleTest(TestCase):
             time_zone=pytz.timezone('US/Eastern'),
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
         )
-        
+
         self.assertEqual(
             rule.get_dates(),
             rule.generate_dates()
         )
-        
+
     def test_get_dates(self):
         """
         Test a monthly 1st day of month rule to catch case of converting tz back using the get_dates method
@@ -704,7 +741,7 @@ class RRuleTest(TestCase):
         # Get next dates to compare against
         more_next_dates = rule.get_dates()
         self.assertEqual(next_dates, more_next_dates)
-        
+
     def test_get_dates_with_start_date(self):
         """
         Test a date generation with a start date.
@@ -798,7 +835,7 @@ class RRuleTest(TestCase):
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler'
         )
         next_dates = rule.get_dates(
-            num_dates=3, 
+            num_dates=3,
             start_date=datetime.datetime(2017, 2, 2, 22)
         )
 
@@ -1307,7 +1344,7 @@ class RRuleTest(TestCase):
     @freeze_time('10-31-2022')
     def test_clone_with_future_days_across_dst(self):
         """
-        Assert that the resulting recurrence next occurrence reflects *its* timezone offset. 
+        Assert that the resulting recurrence next occurrence reflects *its* timezone offset.
         """
 
         rule = RRule.objects.create(
@@ -1318,7 +1355,7 @@ class RRuleTest(TestCase):
             },
             time_zone=pytz.timezone('Europe/Kiev')
         )
-       
+
         # Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
         self.assertEqual(
             rule.generate_dates(),

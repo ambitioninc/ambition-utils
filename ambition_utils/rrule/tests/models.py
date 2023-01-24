@@ -6,8 +6,14 @@ class Program(models.Model):
     start_called = models.IntegerField(default=0)
     end_called = models.IntegerField(default=0)
 
-    start_recurrence = models.ForeignKey('rrule.RRule', on_delete=models.SET_NULL, null=True)
-    end_recurrence = models.ForeignKey('rrule.RRule', on_delete=models.SET_NULL, null=True)
+    start_recurrence = models.ForeignKey(
+        'rrule.RRule', on_delete=models.SET_NULL, null=True,
+        related_name='programs_start'
+    )
+    end_recurrence = models.ForeignKey(
+        'rrule.RRule', on_delete=models.SET_NULL, null=True,
+        related_name='programs_end'
+    )
 
     def handle_start_recurrence(self, rrule):
         self.start_called += 1
