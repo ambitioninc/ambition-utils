@@ -2,6 +2,11 @@
 Release Notes
 =============
 
+3.0.1
+-----
+* Restore forked timezone field for now. will be removed in 3.1
+* Only support py 3.7 and django 2.2, 3.2. other versions will be restored in 3.1
+
 3.0.0
 -----
 * Add support for python 3.8, 3.9
