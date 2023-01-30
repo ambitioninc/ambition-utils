@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.0
+-----
+* Restore future version support and drop forked timezone field
+
 3.0.1
 -----
 * Restore forked timezone field for now. will be removed in 3.1
