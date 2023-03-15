@@ -2,10 +2,6 @@
 Release Notes
 =============
 
-3.1.0
------
-* Restore future version support and drop forked timezone field
-
 3.0.2
 -----
 * Add ability to set error_messages on activities
