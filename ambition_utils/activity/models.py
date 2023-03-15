@@ -96,19 +96,30 @@ class Activity(models.Model):
     )
     error_message = models.TextField(blank=True, null=True)
 
-    def finish(self, status=ActivityStatus.SUCCESS.value):
+    def finish(self, status=ActivityStatus.SUCCESS.value, error_message=None):
         self.status = status
         self.time_finished = datetime.utcnow()
-        self.save()
+        self.error_message = error_message
+        self.save(update_fields=[
+            'status',
+            'time_finished',
+            'error_message'
+        ])
         return self
 
     def active(self):
         self.status = ActivityStatus.ACTIVE.value
-        self.save()
+        self.error_message = None
+        self.time_finished = None
+        self.save(update_fields=[
+            'status',
+            'time_finished',
+            'error_message'
+        ])
         return self
 
     def success(self):
         return self.finish(status=ActivityStatus.SUCCESS.value)
 
     def failure(self, error_message):
-        return self.finish(status=ActivityStatus.FAILURE.value)
+        return self.finish(status=ActivityStatus.FAILURE.value, error_message=error_message)
