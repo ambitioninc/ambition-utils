@@ -1,9 +1,8 @@
-celery==4.2.1
+celery<5
 coverage
 coveralls
 django-nose
 django-dynamic-fixture>=2.0.0
 freezegun
-mock
-psycopg2>=2.7.7
+psycopg2
 flake8
