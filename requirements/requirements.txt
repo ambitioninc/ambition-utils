@@ -1,5 +1,5 @@
 # django-timezone-field<5.0
-ambition-django-timezone-field>=2.0.4
+ambition-django-timezone-field>=2.0.6b1
 fleming>=0.7.0
 django-manager-utils>=3.0.1
 
