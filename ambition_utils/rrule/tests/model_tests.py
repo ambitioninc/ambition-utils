@@ -1422,3 +1422,56 @@ class RRuleTest(TestCase):
                 datetime.datetime(2022, 10, 31, 8),
             ]
         )
+
+
+class RRuleWithExclusionTest(TestCase):
+    def test_exclusion(self):
+        weekly_program = Program.objects.create(name='Weekly Program')
+        weekly_rrule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2023, 6, 1),
+                'byweekday': 0,
+            },
+            rrule_exclusion_params={
+                'freq': rrule.MONTHLY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2023, 6, 1),
+                'bysetpos': 2,
+                'byweekday': 0
+            },
+            related_object=weekly_program,
+            related_object_handler_name='handle_start_recurrence',
+        )
+        monthly_program = Program.objects.create(name='Monthly Program')
+        monthly_rrule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.MONTHLY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2023, 6, 1),
+                'bysetpos': 2,
+                'byweekday': 0
+            },
+            related_object=monthly_program,
+            related_object_handler_name='handle_start_recurrence',
+        )
+
+        weekly_dates = weekly_rrule.get_dates(num_dates=10)
+        monthly_dates = monthly_rrule.get_dates(num_dates=10)
+        self.assertEqual(
+            weekly_dates,
+            [datetime.datetime(2023, 6, 5, 0, 0), datetime.datetime(2023, 6, 19, 0, 0),
+             datetime.datetime(2023, 6, 26, 0, 0), datetime.datetime(2023, 7, 3, 0, 0),
+             datetime.datetime(2023, 7, 17, 0, 0), datetime.datetime(2023, 7, 24, 0, 0),
+             datetime.datetime(2023, 7, 31, 0, 0), datetime.datetime(2023, 8, 7, 0, 0),
+             datetime.datetime(2023, 8, 21, 0, 0), datetime.datetime(2023, 8, 28, 0, 0)]
+        )
+        self.assertEqual(
+            monthly_dates,
+            [datetime.datetime(2023, 6, 12, 0, 0), datetime.datetime(2023, 7, 10, 0, 0),
+             datetime.datetime(2023, 8, 14, 0, 0), datetime.datetime(2023, 9, 11, 0, 0),
+             datetime.datetime(2023, 10, 9, 0, 0), datetime.datetime(2023, 11, 13, 0, 0),
+             datetime.datetime(2023, 12, 11, 0, 0), datetime.datetime(2024, 1, 8, 0, 0),
+             datetime.datetime(2024, 2, 12, 0, 0), datetime.datetime(2024, 3, 11, 0, 0)]
+        )

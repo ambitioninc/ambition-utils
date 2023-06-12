@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from dateutil import rrule
 from django.test import TestCase
@@ -117,6 +118,7 @@ class NestedRecurrenceFormTest(TestCase):
             'repeat_by': '',
             'until': None,
             'rrule': None,
+            'rrule_exclusion': None
         })
 
     def test_missing_after_occurrences_count(self):
@@ -488,3 +490,36 @@ class NestedRecurrenceFormTest(TestCase):
         )
         self.assertEqual(RRule.objects.count(), 1)
         self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
+
+    def test_exclusion_rule(self):
+        exclusion_data = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': '6/1/2023',
+            'byhour': '0',
+            'bysetpos': 2,
+            'bynweekday': json.dumps([[0, 2]]),
+            'ends': RecurrenceEnds.NEVER,
+            'repeat_by': 'DAY_OF_THE_WEEK_START'
+        }
+        data = {
+            'freq': rrule.WEEKLY,
+            'interval': 1,
+            'dtstart': '6/1/2023',
+            'byhour': '0',
+            'byweekday': json.dumps([0]),
+            'time_zone': 'UTC',
+            'ends': RecurrenceEnds.NEVER,
+            'rrule_exclusion': json.dumps(exclusion_data)
+        }
+        form = RecurrenceForm(data=data)
+        self.assertTrue(form.is_valid())
+        rrule_model = form.save()
+        self.assertEqual(
+            rrule_model.get_dates(num_dates=10),
+            [datetime.datetime(2023, 6, 5, 0, 0), datetime.datetime(2023, 6, 19, 0, 0),
+             datetime.datetime(2023, 6, 26, 0, 0), datetime.datetime(2023, 7, 3, 0, 0),
+             datetime.datetime(2023, 7, 17, 0, 0), datetime.datetime(2023, 7, 24, 0, 0),
+             datetime.datetime(2023, 7, 31, 0, 0), datetime.datetime(2023, 8, 7, 0, 0),
+             datetime.datetime(2023, 8, 21, 0, 0), datetime.datetime(2023, 8, 28, 0, 0)]
+        )

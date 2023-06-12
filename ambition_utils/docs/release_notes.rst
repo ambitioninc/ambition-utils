@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.0.3
+-----
+* Added the ability to set an exclusion rule on an rrule object
+
 3.0.2
 -----
 * Add ability to set error_messages on activities
