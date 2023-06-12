@@ -34,12 +34,11 @@ REPEAT_BY_CHOICES = (
 )
 
 
-class RecurrenceForm(forms.Form):
+class RRuleForm(forms.Form):
     """
     Handles submission of data for populating rrule objects. The field names are based on the rrule
     params defined here http://dateutil.readthedocs.io/en/stable/rrule.html
     """
-    rrule = forms.ModelChoiceField(queryset=RRule.objects.all(), required=False)
 
     # Date from which the recurrence will be started from. This might not always be the first recurrence in the series
     dtstart = forms.DateField(
@@ -88,13 +87,6 @@ class RecurrenceForm(forms.Form):
     # recurrence date
     until = forms.DateField(required=False)
 
-    def __init__(self, *args, **kwargs):
-        # Remove the instance param if it exists. Model forms will try to pass this, but it isn't used here and will
-        # cause the base form init to fail
-        kwargs.pop('instance', None)
-
-        super(RecurrenceForm, self).__init__(*args, **kwargs)
-
     def clean_freq(self):
         """
         Make sure the frequency is an integer
@@ -105,7 +97,7 @@ class RecurrenceForm(forms.Form):
         """
         Perform additional form validation based on submitted params
         """
-        cleaned_data = super(RecurrenceForm, self).clean()
+        cleaned_data = super().clean()
 
         if self.errors:
             return cleaned_data
@@ -172,10 +164,7 @@ class RecurrenceForm(forms.Form):
 
         return value
 
-    def save(self, **kwargs):
-        """
-        Saves the RRule model and returns it
-        """
+    def get_rrule_params_from_cleaned_data(self):
         rrule_freq = self.cleaned_data['freq']
         start_date = self.cleaned_data['dtstart']
 
@@ -216,6 +205,53 @@ class RecurrenceForm(forms.Form):
                 params['byweekday'] = self.cleaned_data['bynweekday'][0][0]
                 params['bysetpos'] = self.cleaned_data['bynweekday'][0][1]
 
+        # Return the params
+        return params
+
+
+class RecurrenceForm(RRuleForm):
+    """
+    Converts rrule options into an rrule model
+    """
+
+    # Optional rrule object that we are modifying
+    rrule = forms.ModelChoiceField(queryset=RRule.objects.all(), required=False)
+
+    # Optional rrule exclusion params
+    rrule_exclusion = forms.CharField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        # Remove the instance param if it exists. Model forms will try to pass this, but it isn't used here and will
+        # cause the base form init to fail
+        kwargs.pop('instance', None)
+
+        super(RecurrenceForm, self).__init__(*args, **kwargs)
+
+    def clean_rrule_exclusion(self):
+        # Get the value from data
+        rrule_exclusion = self.cleaned_data.get('rrule_exclusion')
+        if not rrule_exclusion:
+            return None
+
+        # Parse the exclusion options
+        rrule_exclusion = json.loads(rrule_exclusion)
+        rrule_exclusion['time_zone'] = self.cleaned_data['time_zone']
+        rrule_exclusion['ends'] = self.cleaned_data['ends']
+
+        # Validate the options
+        rrule_exclusion_form = RRuleForm(data=rrule_exclusion)
+        if not rrule_exclusion_form.is_valid():
+            print(rrule_exclusion)
+            print(rrule_exclusion_form.errors)
+            raise ValidationError('Exclusion options invalid')
+
+        # Return the exclusion params
+        return rrule_exclusion_form.get_rrule_params_from_cleaned_data()
+
+    def save(self, **kwargs):
+        """
+        Saves the RRule model and returns it
+        """
         # Keep track if this is an existing rrule that needs occurrence updated
         need_to_refresh_next_recurrence = False
 
@@ -228,7 +264,8 @@ class RecurrenceForm(forms.Form):
             rrule_model = kwargs.get('recurrence') or RRule()
 
         # Create or update the rule
-        rrule_model.rrule_params = params
+        rrule_model.rrule_params = self.get_rrule_params_from_cleaned_data()
+        rrule_model.rrule_exclusion_params = self.cleaned_data.get('rrule_exclusion')
         rrule_model.time_zone = self.cleaned_data.get('time_zone')
         for key, value in kwargs.items():
             if hasattr(rrule_model, key):
