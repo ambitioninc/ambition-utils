@@ -236,13 +236,10 @@ class RecurrenceForm(RRuleForm):
         # Parse the exclusion options
         rrule_exclusion = json.loads(rrule_exclusion)
         rrule_exclusion['time_zone'] = self.cleaned_data['time_zone']
-        rrule_exclusion['ends'] = self.cleaned_data['ends']
 
         # Validate the options
         rrule_exclusion_form = RRuleForm(data=rrule_exclusion)
         if not rrule_exclusion_form.is_valid():
-            print(rrule_exclusion)
-            print(rrule_exclusion_form.errors)
             raise ValidationError('Exclusion options invalid')
 
         # Return the exclusion params
