@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 from dateutil import parser
-from dateutil.rrule import rrule
+from dateutil.rrule import rrule, rruleset
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
@@ -108,6 +108,9 @@ class RRule(models.Model):
     # Params used to generate the rrule
     rrule_params = models.JSONField()
 
+    # Optional params used to generate the rrule exclusion
+    rrule_exclusion_params = JSONField(default=None, blank=True, null=True)
+
     # Any meta data associated with the object that created this rule
     meta_data = models.JSONField(default=dict)
 
@@ -136,6 +139,9 @@ class RRule(models.Model):
     objects = RRuleManager()
 
     def get_time_zone_object(self):
+        """
+        Returns the time zone object from pytz
+        """
         if self.time_zone is None:
             return pytz.utc
 
@@ -157,13 +163,42 @@ class RRule(models.Model):
         except:
             return None
 
+    def get_rrule_set(self):
+        """
+        Returns the rrule set that will combine the rrule and optional exclusion rrule
+        """
+        rrule_set = rruleset()
+        rrule_set.rrule(self.get_rrule())
+        rrule_exclusion = self.get_rrule_exclusion()
+        if rrule_exclusion:
+            rrule_set.exrule(rrule_exclusion)
+        return rrule_set
+
     def get_rrule(self):
         """
         Builds the rrule object by restoring all the params.
+        """
+        return self.get_rrule_from_params(self.rrule_params)
+
+    def get_rrule_exclusion(self):
+        """
+        Builds the rrule exclusion object by restoring all the params.
+        :rtype: rrule
+        """
+        return self.get_rrule_from_params(self.rrule_exclusion_params)
+
+    def get_rrule_from_params(self, params):
+        """
+        Creates an rrule object from a dict of rrule params. Returns None if no params exists.
         The dtstart param will be converted to local time if it is set.
         :rtype: rrule
         """
-        params = copy.deepcopy(self.rrule_params)
+        # Check for none or empty
+        if not params:
+            return None
+
+        # Create a deep copy because we will manipulate
+        params = copy.deepcopy(params)
 
         # Convert next scheduled from utc back to time zone
         if params.get('dtstart') and not hasattr(params.get('dtstart'), 'date'):
@@ -189,14 +224,14 @@ class RRule(models.Model):
         # Get the last occurrence
         last_occurrence = last_occurrence or self.last_occurrence or datetime.utcnow()
 
-        # Get the rule
-        rule = self.get_rrule()
+        # Get the rule set
+        rule_set = self.get_rrule_set()
 
         # Convert to local time zone for getting next occurrence, otherwise time zones ahead of utc will return the same
         last_occurrence = fleming.convert_to_tz(last_occurrence, self.get_time_zone_object(), return_naive=True)
 
         # Generate the next occurrence
-        next_occurrence = rule.after(last_occurrence)
+        next_occurrence = rule_set.after(last_occurrence)
 
         # If next occurrence is none and force is true, force the rrule to generate another date
         if next_occurrence is None and force:
@@ -208,11 +243,11 @@ class RRule(models.Model):
             self.rrule_params.pop('count', None)
             self.rrule_params.pop('until', None)
 
-            # Refetch the rule
-            rule = self.get_rrule()
+            # Refetch the rule set
+            rule_set = self.get_rrule_set()
 
             # Generate the next occurrence
-            next_occurrence = rule.after(last_occurrence)
+            next_occurrence = rule_set.after(last_occurrence)
 
             # Restore the rrule params
             self.rrule_params = original_rrule_params
@@ -283,28 +318,47 @@ class RRule(models.Model):
         self.set_date_objects()
 
     def set_date_objects(self):
+        """
+        Ensure that all the date keys are properly set on all rrule params
+        """
+
+        # Convert the rrule and exclusion rrule params to properly set date keys
+        is_new = self.pk is None
+        self.set_date_objects_for_params(self.rrule_params, is_new=is_new)
+        self.set_date_objects_for_params(self.rrule_exclusion_params, is_new=is_new)
+
         # Check if this is a new rrule object
-        if self.pk is None:
-            # Convert next scheduled from utc back to time zone
-            if self.rrule_params.get('dtstart') and not hasattr(self.rrule_params.get('dtstart'), 'date'):
-                self.rrule_params['dtstart'] = parser.parse(self.rrule_params['dtstart'])
-
-            # Convert until date from utc back to time zone
-            if self.rrule_params.get('until') and not hasattr(self.rrule_params.get('until'), 'date'):
-                self.rrule_params['until'] = parser.parse(self.rrule_params['until'])
-
+        if is_new:
             # Get the first scheduled time according to the rrule (this converts from utc back to local time)
-            self.next_occurrence = self.get_rrule()[0]
+            self.next_occurrence = self.get_rrule_set()[0]
 
             # Convert back to utc before saving
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
 
-        # Serialize the datetime objects if they exist
-        if self.rrule_params.get('dtstart') and hasattr(self.rrule_params.get('dtstart'), 'date'):
-            self.rrule_params['dtstart'] = self.rrule_params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
+    def set_date_objects_for_params(self, params, is_new=False):
+        """
+        Give an rrule params object, ensure that the date keys are properly set and properly converted to strings
+        """
+        # Check for no params
+        if not params:
+            return params
 
-        if self.rrule_params.get('until') and hasattr(self.rrule_params.get('until'), 'date'):
-            self.rrule_params['until'] = self.rrule_params['until'].strftime('%Y-%m-%d %H:%M:%S')
+        # Check if this is a new rrule object
+        if is_new:
+            # Convert next scheduled from utc back to time zone
+            if params.get('dtstart') and not hasattr(params.get('dtstart'), 'date'):
+                params['dtstart'] = parser.parse(params['dtstart'])
+
+            # Convert until date from utc back to time zone
+            if params.get('until') and not hasattr(params.get('until'), 'date'):
+                params['until'] = parser.parse(params['until'])
+
+        # Serialize the datetime objects if they exist
+        if params.get('dtstart') and hasattr(params.get('dtstart'), 'date'):
+            params['dtstart'] = params['dtstart'].strftime('%Y-%m-%d %H:%M:%S')
+
+        if params.get('until') and hasattr(params.get('until'), 'date'):
+            params['until'] = params['until'].strftime('%Y-%m-%d %H:%M:%S')
 
     def save(self, *args, **kwargs):
         """
@@ -312,6 +366,8 @@ class RRule(models.Model):
         determined and set. The `dtstart` and `until` objects will be safely encoded as strings if they are
         datetime objects.
         """
+
+        # Run any pre save hooks
         self.pre_save_hooks()
 
         # Call the parent save method
@@ -324,18 +380,21 @@ class RRule(models.Model):
         :param start_date: The optional start date to begin generating dates after
         :return: A list of datetime objects
         """
+
+        # Assert that we have dates
         assert num_dates > 0
 
+        # Ensure that pre save hooks have been run
         self.pre_save_hooks()
 
+        # Generate the dates
         dates = []
-
         try:
             # Capture the rule's first date for use in RRule.after() in the loop.
-            rule = self.get_rrule()
+            rule_set = self.get_rrule_set()
 
             # Evaluate if the first date should be retained.
-            d = self.convert_to_utc(rule[0])
+            d = self.convert_to_utc(rule_set[0])
             if not start_date or d > start_date:
                 dates.append(d)
 
@@ -348,10 +407,10 @@ class RRule(models.Model):
                         dates.append(d)
                 else:
                     break
-
         except Exception:  # pragma: no cover
             pass
 
+        # Return the generated dates
         return dates
 
     def generate_dates(self, num_dates=20):
@@ -370,9 +429,7 @@ class RRule(models.Model):
         # Clear id to force a new object.
         clone = copy.deepcopy(self)
         clone.id = None
-
         clone.save()
-
         return clone
 
     def clone_with_day_offset(self, day_offset: int) -> RRule:
