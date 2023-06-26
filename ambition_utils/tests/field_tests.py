@@ -28,24 +28,23 @@ class TimeZoneFieldTest(TestCase):
         instance.refresh_from_db()
         self.assertEqual(instance.cast_time_zone_field, pytz.timezone('US/Eastern'))
 
-    # TODO: uncomment when we are off of the forked timezone field
-    # def test_no_cast_on_assign(self):
-    #     """
-    #     Verifies the base time zone field is not cast when being assigned
-    #     """
-    #     instance = FakeModel()
-    #     instance.no_cast_time_zone_field = 'US/Eastern'
-    #
-    #     # Verify the timezone is a string
-    #     self.assertEqual(instance.no_cast_time_zone_field, 'US/Eastern')
-    #
-    #     # Save and verify it is still a string
-    #     instance.save()
-    #     self.assertEqual(instance.no_cast_time_zone_field, 'US/Eastern')
-    #
-    #     # Load from db and verify it is now cast as a time zone
-    #     instance.refresh_from_db()
-    #     self.assertEqual(instance.no_cast_time_zone_field, pytz.timezone('US/Eastern'))
+    def test_no_cast_on_assign(self):
+        """
+        Verifies the base time zone field is not cast when being assigned
+        """
+        instance = FakeModel()
+        instance.no_cast_time_zone_field = 'US/Eastern'
+
+        # Verify the timezone is a string
+        self.assertEqual(instance.no_cast_time_zone_field, 'US/Eastern')
+
+        # Save and verify it is still a string
+        instance.save()
+        self.assertEqual(instance.no_cast_time_zone_field, 'US/Eastern')
+
+        # Load from db and verify it is now cast as a time zone
+        instance.refresh_from_db()
+        self.assertEqual(instance.no_cast_time_zone_field, pytz.timezone('US/Eastern'))
 
     def test_all_time_zones_choices(self):
         """
