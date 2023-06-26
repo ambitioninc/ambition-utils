@@ -109,7 +109,7 @@ class RRule(models.Model):
     rrule_params = models.JSONField()
 
     # Optional params used to generate the rrule exclusion
-    rrule_exclusion_params = JSONField(default=None, blank=True, null=True)
+    rrule_exclusion_params = models.JSONField(default=None, blank=True, null=True)
 
     # Any meta data associated with the object that created this rule
     meta_data = models.JSONField(default=dict)
