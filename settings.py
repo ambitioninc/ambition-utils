@@ -38,8 +38,8 @@ def configure_settings():
         settings.configure(
             TEST_RUNNER='django_nose.NoseTestSuiteRunner',
             SECRET_KEY='*',
+            DEFAULT_AUTO_FIELD='django.db.models.AutoField',
             NOSE_ARGS=['--nocapture', '--nologcapture', '--verbosity=1'],
-            MIDDLEWARE_CLASSES=(),
             DATABASES={
                 'default': db_config,
             },
@@ -88,6 +88,7 @@ def configure_settings():
             ROOT_URLCONF='ambition_utils.urls',
             TIME_ZONE='UTC',
             USE_TZ=False,
+            MIDDLEWARE=[],
             TEMPLATES=[
                 {
                     'BACKEND': 'django.template.backends.django.DjangoTemplates',
