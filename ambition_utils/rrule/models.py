@@ -8,7 +8,7 @@ from django.db import models, transaction
 from django.utils.module_loading import import_string
 from fleming import fleming
 from manager_utils import bulk_update
-from timezone_field import TimeZoneField
+from ambition.fields import TimeZoneField
 from typing import List
 import copy
 import pytz
