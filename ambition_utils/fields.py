@@ -39,6 +39,12 @@ class CastOnAssignFieldMixin:
 
 
 class TimeZoneField(CastOnAssignFieldMixin, BaseTimeZoneField):
+    @staticmethod
+    def get_default_pytz_tzs():
+        """
+        Override to use all time zones instead of common by default
+        """
+        return [pytz.timezone(tz) for tz in pytz.all_timezones]
 
     @classmethod
     def get_all_choices(cls):

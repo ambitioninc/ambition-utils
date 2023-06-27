@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.4
+-----
+* Use all pytz time zones by default
+
 3.1.3
 -----
 * Fix import
