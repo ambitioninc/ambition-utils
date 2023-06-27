@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.3
+-----
+* Fix import
+
 3.1.2
 -----
 * Switch rrule to use our time zone field for cast-on-assign behavior
