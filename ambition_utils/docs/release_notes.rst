@@ -2,6 +2,15 @@
 Release Notes
 =============
 
+3.1.2
+-----
+* Switch rrule to use our time zone field for cast-on-assign behavior
+
+3.1.1
+-----
+* Django 4 support
+* Switch off time zone field fork
+
 3.0.3
 -----
 * Added the ability to set an exclusion rule on an rrule object
