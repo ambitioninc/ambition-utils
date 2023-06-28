@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.6
+-----
+* Update migrations to point to utils time zone field
+
 3.1.5
 -----
 * Support timezone field v4 all time zones
