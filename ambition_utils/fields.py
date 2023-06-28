@@ -1,4 +1,5 @@
 import pytz
+from timezone_field.choices import standard
 from timezone_field.fields import TimeZoneField as BaseTimeZoneField
 
 
