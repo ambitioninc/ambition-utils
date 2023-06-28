@@ -39,9 +39,14 @@ class CastOnAssignFieldMixin:
 
 
 class TimeZoneField(CastOnAssignFieldMixin, BaseTimeZoneField):
+    # Define default tzs on the class to support 4.2.x
+    default_tzs = [pytz.timezone(tz) for tz in pytz.all_timezones]
+    default_choices = standard(default_tzs)
+
     @staticmethod
     def get_default_pytz_tzs():
         """
+        For timezone field v5+ this is how to override pytz defaults
         Override to use all time zones instead of common by default
         """
         return [pytz.timezone(tz) for tz in pytz.all_timezones]
