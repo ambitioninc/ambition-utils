@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.5
+-----
+* Support timezone field v4 all time zones
+
 3.1.4
 -----
 * Use all pytz time zones by default
