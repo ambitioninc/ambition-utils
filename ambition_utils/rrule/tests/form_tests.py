@@ -498,7 +498,6 @@ class NestedRecurrenceFormTest(TestCase):
             # This ensures that the handler is left to update the next_occurrence.
             self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
 
-
     def test_exclusion_rule(self):
         exclusion_data = {
             'freq': rrule.MONTHLY,

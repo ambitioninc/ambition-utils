@@ -272,9 +272,9 @@ class RecurrenceForm(RRuleForm):
 
             # Have any changes among params, exclusion params, or the time zone been made?
             need_to_refresh_next_occurrence = (
-                    (form_rrule_params != original_rrule_params) or
-                    (form_exclusion_params != original_exclusion_params) or
-                    (str(rrule_model.time_zone) != self.cleaned_data.get('time_zone'))
+                (form_rrule_params != original_rrule_params) or
+                (form_exclusion_params != original_exclusion_params) or
+                (str(rrule_model.time_zone) != self.cleaned_data.get('time_zone'))
             )
         else:
             # Use the recurrence passed into save kwargs
