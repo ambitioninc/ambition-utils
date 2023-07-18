@@ -249,13 +249,33 @@ class RecurrenceForm(RRuleForm):
         """
         Saves the RRule model and returns it
         """
-        # Keep track if this is an existing rrule that needs occurrence updated
-        need_to_refresh_next_recurrence = False
+        # The next occurrence will be refreshed if changes to the object have been made.
+        need_to_refresh_next_occurrence = False
 
         # Get the rrule model from the cleaned data
         rrule_model = self.cleaned_data.get('rrule')
         if rrule_model:
-            need_to_refresh_next_recurrence = True
+            # Create sorted, arrays of values as strings for comparison.
+            form_rrule_params = sorted(
+                [str(value) for value in self.get_rrule_params_from_cleaned_data().values()]
+            )
+            original_rrule_params = sorted(
+                [str(value) for value in rrule_model.rrule_params.values()]
+            )
+
+            form_exclusion_params = sorted(
+                [str(value) for value in (self.cleaned_data.get('rrule_exclusion') or {}).values()]
+            )
+            original_exclusion_params = sorted(
+                [str(value) for value in (rrule_model.rrule_exclusion_params or {}).values()]
+            )
+
+            # Have any changes among params, exclusion params, or the time zone been made?
+            need_to_refresh_next_occurrence = (
+                    (form_rrule_params != original_rrule_params) or
+                    (form_exclusion_params != original_exclusion_params) or
+                    (str(rrule_model.time_zone) != self.cleaned_data.get('time_zone'))
+            )
         else:
             # Use the recurrence passed into save kwargs
             rrule_model = kwargs.get('recurrence') or RRule()
@@ -273,7 +293,7 @@ class RecurrenceForm(RRuleForm):
                     pass
 
         # Check if this was an existing model that needs to have its next occurrence updated
-        if need_to_refresh_next_recurrence:
+        if need_to_refresh_next_occurrence:
             rrule_model.refresh_next_occurrence()
 
         rrule_model.save()
