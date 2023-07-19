@@ -1,13 +1,11 @@
-# django-timezone-field<5.0
-ambition-django-timezone-field>=2.0.4
+django-timezone-field
 fleming>=0.7.0
 django-manager-utils>=3.0.1
 
-Django>=2.2
+Django>=3.2
 pandas>=0.21.0
 python-dateutil>=2.4.2
 pytz>=2015.6
-six
 sqlparse
 tdigest
 wrapt>=1.10.5
