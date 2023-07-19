@@ -5,7 +5,6 @@ from typing import Union, Iterable, List
 
 
 from django.db import models
-from django.contrib.postgres.fields import JSONField
 from django.utils.functional import cached_property
 import fleming
 from tdigest import TDigest
@@ -67,7 +66,7 @@ class AnomalyBase(models.Model):
     uid = models.CharField(max_length=256, unique=True)
 
     # JSON blob to persist the state of the tdigest
-    blob = JSONField(default=dict, null=True)
+    blob = models.JSONField(default=dict, null=True)
 
     # User defined percentiles below and above which an anomaly will happen
     percentile_low = models.FloatField(null=True)

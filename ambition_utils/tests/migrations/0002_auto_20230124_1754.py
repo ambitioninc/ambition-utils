@@ -2,7 +2,7 @@
 
 import ambition_utils.fields
 from django.db import migrations
-import timezone_field.fields
+import ambition_utils.fields
 
 
 class Migration(migrations.Migration):
@@ -20,6 +20,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='fakemodel',
             name='no_cast_time_zone_field',
-            field=timezone_field.fields.TimeZoneField(default='utc', null=True),
+            field=ambition_utils.fields.TimeZoneField(default='utc', null=True),
         ),
     ]

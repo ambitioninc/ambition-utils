@@ -1,8 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from functools import wraps
 from inspect import getmembers
-from six import reraise
-from sys import exc_info
 
 from ambition_utils.activity.models import Activity, ActivityGroup
 
@@ -21,7 +19,7 @@ def decorate_activity(fn, activity):
             return ret_val
         except Exception as e:
             activity.failure(str(e))
-            reraise(*exc_info())
+            raise e
     return decorator
 
 

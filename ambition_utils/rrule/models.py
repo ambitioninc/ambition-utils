@@ -4,12 +4,11 @@ from dateutil import parser
 from dateutil.rrule import rrule, rruleset
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import JSONField
 from django.db import models, transaction
 from django.utils.module_loading import import_string
 from fleming import fleming
 from manager_utils import bulk_update
-from timezone_field import TimeZoneField
+from ambition_utils.fields import TimeZoneField
 from typing import List
 import copy
 import pytz
@@ -107,13 +106,13 @@ class RRule(models.Model):
     """
 
     # Params used to generate the rrule
-    rrule_params = JSONField()
+    rrule_params = models.JSONField()
 
     # Optional params used to generate the rrule exclusion
-    rrule_exclusion_params = JSONField(default=None, blank=True, null=True)
+    rrule_exclusion_params = models.JSONField(default=None, blank=True, null=True)
 
     # Any meta data associated with the object that created this rule
-    meta_data = JSONField(default=dict)
+    meta_data = models.JSONField(default=dict)
 
     # The timezone all dates should be converted to
     time_zone = TimeZoneField(default='UTC')
