@@ -255,27 +255,8 @@ class RecurrenceForm(RRuleForm):
         # Get the rrule model from the cleaned data
         rrule_model = self.cleaned_data.get('rrule')
         if rrule_model:
-            # Create sorted, arrays of values as strings for comparison.
-            form_rrule_params = sorted(
-                [str(value) for value in self.get_rrule_params_from_cleaned_data().values()]
-            )
-            original_rrule_params = sorted(
-                [str(value) for value in rrule_model.rrule_params.values()]
-            )
-
-            form_exclusion_params = sorted(
-                [str(value) for value in (self.cleaned_data.get('rrule_exclusion') or {}).values()]
-            )
-            original_exclusion_params = sorted(
-                [str(value) for value in (rrule_model.rrule_exclusion_params or {}).values()]
-            )
-
-            # Have any changes among params, exclusion params, or the time zone been made?
-            need_to_refresh_next_occurrence = (
-                (form_rrule_params != original_rrule_params)
-                or (form_exclusion_params != original_exclusion_params)
-                or (str(rrule_model.time_zone) != self.cleaned_data.get('time_zone'))
-            )
+            # Refresh if the next occurrence is not expired.
+            need_to_refresh_next_occurrence = rrule_model.next_occurrence > datetime.utcnow()
         else:
             # Use the recurrence passed into save kwargs
             rrule_model = kwargs.get('recurrence') or RRule()

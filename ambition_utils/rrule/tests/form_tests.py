@@ -473,6 +473,12 @@ class NestedRecurrenceFormTest(TestCase):
             self.assertEqual(RRule.objects.count(), 1)
             self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 4))
 
+            # Handle overdue and assert next day.
+            RRule.objects.update_next_occurrences([rrule_model])
+            self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 5))
+
+        # Next day
+        with freeze_time(datetime.datetime(2017, 6, 5)):
             # Update object with different start date. Pass RRule.id along to be updated.
             data['rrule'] = str(rrule_model.id)
             data['dtstart'] = '6/7/2017'
@@ -483,20 +489,14 @@ class NestedRecurrenceFormTest(TestCase):
                 occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
             )
             self.assertEqual(RRule.objects.count(), 1)
+
+            # Next occurrence should not be updated because it is expired and needs to be resolved by its handler.
+            self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 5))
+
+            # Handle overdue and assert next occurrence now reflects the new start date instead of the next day, 6/6.
+            RRule.objects.update_next_occurrences([rrule_model])
             self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
 
-        # Fast-forward to next occurrence.
-        with freeze_time(datetime.datetime(2017, 6, 7)):
-            # Submit to form with no changes.
-            form = RecurrenceForm(data=data)
-            self.assertTrue(form.is_valid())
-            rrule_model = form.save(
-                occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
-            )
-
-            # Next occurrence should not change because no changes to the object were submitted.
-            # This ensures that the handler is left to update the next_occurrence.
-            self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
 
     def test_exclusion_rule(self):
         exclusion_data = {
