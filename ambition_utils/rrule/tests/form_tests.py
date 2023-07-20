@@ -453,9 +453,10 @@ class NestedRecurrenceFormTest(TestCase):
     def test_update(self):
         """
         Verifies an existing RRule object will be updated when the id of the RRule object is passed in the form data.
-        The next occurrence is refreshed when changes to the params or exclusion params have been made to ensure
-        the next occurrence is not updated before its handler runs.
+        The next occurrence is refreshed when the occurrence is not expired to ensure the next occurrence is not
+        updated before its handler runs.
         """
+        # Create an object, update its next occurrence, and assert it changes.
         with freeze_time(datetime.datetime(2017, 6, 4)):
             data = {
                 'freq': rrule.DAILY,
@@ -477,9 +478,9 @@ class NestedRecurrenceFormTest(TestCase):
             RRule.objects.update_next_occurrences([rrule_model])
             self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 5))
 
-        # Next day
+        # Next day. Update object's start date, by passing RRule.id along. Ensure next occurrence is not updated
+        # by the update since it's overdue.
         with freeze_time(datetime.datetime(2017, 6, 5)):
-            # Update object with different start date. Pass RRule.id along to be updated.
             data['rrule'] = str(rrule_model.id)
             data['dtstart'] = '6/7/2017'
 
@@ -496,7 +497,6 @@ class NestedRecurrenceFormTest(TestCase):
             # Handle overdue and assert next occurrence now reflects the new start date instead of the next day, 6/6.
             RRule.objects.update_next_occurrences([rrule_model])
             self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
-
 
     def test_exclusion_rule(self):
         exclusion_data = {

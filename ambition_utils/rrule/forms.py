@@ -249,7 +249,7 @@ class RecurrenceForm(RRuleForm):
         """
         Saves the RRule model and returns it
         """
-        # The next occurrence will be refreshed if changes to the object have been made.
+        # Keep track if this is an existing rrule that needs occurrence updated
         need_to_refresh_next_occurrence = False
 
         # Get the rrule model from the cleaned data
