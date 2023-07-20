@@ -1,6 +1,6 @@
 from django.db import transaction, utils
 from django.test.testcases import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from ambition_utils.transaction import durable
 from ambition_utils.transaction import decorators
