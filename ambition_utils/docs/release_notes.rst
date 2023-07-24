@@ -2,6 +2,11 @@
 Release Notes
 =============
 
+3.1.7
+-----
+* RecurrenceForm will no longer refresh the next occurrence if the occurrence is expired.
+
+
 3.1.6
 -----
 * Update migrations to point to utils time zone field
