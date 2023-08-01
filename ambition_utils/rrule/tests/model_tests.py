@@ -1423,6 +1423,84 @@ class RRuleTest(TestCase):
             ]
         )
 
+    def test_offset(self):
+        """
+        Assert the offset method adjusts a given date by the given number of days
+        """
+        self.assertEqual(
+            RRule(day_offset=1).offset(datetime.datetime(2023, 1, 1)),
+            datetime.datetime(2023, 1, 2)
+        )
+
+        self.assertEqual(
+            RRule(day_offset=-1).offset(datetime.datetime(2023, 1, 1)),
+            datetime.datetime(2022, 12, 31)
+        )
+
+        self.assertEqual(
+            RRule().offset(datetime.datetime(2023, 1, 1)),
+            datetime.datetime(2023, 1, 1)
+        )
+
+
+    def test_day_offset(self):
+        """
+        Assert that the field, day_offset, adjusts all generated dates.
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2016, 12, 31),
+            'bymonthday': 1,
+            'until': datetime.datetime(2017, 4, 30),
+        }
+
+        rule = RRule(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            day_offset=1,
+        )
+        next_dates = rule.get_dates()
+
+        # Check a few dates
+        self.assertEqual(len(next_dates), 4)
+
+        self.assertEqual(next_dates[0], datetime.datetime(2017, 1, 2, 5))
+        self.assertEqual(next_dates[1], datetime.datetime(2017, 2, 2, 5))
+        self.assertEqual(next_dates[2], datetime.datetime(2017, 3, 2, 5))
+        self.assertEqual(next_dates[3], datetime.datetime(2017, 4, 2, 4))  # DST change for US/Eastern
+
+        # Run pre save again to make sure it doesn't mess up params
+        rule.pre_save_hooks()
+
+        # Get next dates to compare against
+        more_next_dates = rule.get_dates()
+        self.assertEqual(next_dates, more_next_dates)
+
+        rule = RRule(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            day_offset=-1,
+        )
+
+        next_dates = rule.get_dates()
+
+        # Check a few dates
+        self.assertEqual(len(next_dates), 4)
+
+        self.assertEqual(next_dates[0], datetime.datetime(2016, 12, 31, 5))
+        self.assertEqual(next_dates[1], datetime.datetime(2017, 1, 31, 5))
+        self.assertEqual(next_dates[2], datetime.datetime(2017, 2, 28, 5))
+        self.assertEqual(next_dates[3], datetime.datetime(2017, 3, 31, 4))  # DST change for US/Eastern
+
+        # Run pre save again to make sure it doesn't mess up params
+        rule.pre_save_hooks()
+
+        # Get next dates to compare against
+        more_next_dates = rule.get_dates()
+        self.assertEqual(next_dates, more_next_dates)
 
 class RRuleWithExclusionTest(TestCase):
     def test_exclusion(self):

@@ -135,6 +135,8 @@ class RRule(models.Model):
     # The name of the method to call on the related_object when the recurrence has expired
     related_object_handler_name = models.TextField(default=None, null=True, blank=True)
 
+    day_offset = models.SmallIntegerField(blank=True, null=True)
+
     # Custom object manager
     objects = RRuleManager()
 
@@ -252,9 +254,11 @@ class RRule(models.Model):
             # Restore the rrule params
             self.rrule_params = original_rrule_params
 
-        # If there is a next occurrence, convert to utc
+        # If there is a next occurrence, convert to utc and offset
         if next_occurrence:
             next_occurrence = self.convert_to_utc(next_occurrence)
+
+            # next_occurrence = self.offset(next_occurrence)
 
         # Return the next occurrence
         return next_occurrence
@@ -276,7 +280,7 @@ class RRule(models.Model):
             return False
 
         self.last_occurrence = self.next_occurrence
-        self.next_occurrence = self.get_next_occurrence(self.last_occurrence)
+        self.next_occurrence = self.offset(self.get_next_occurrence(self.last_occurrence))
 
         # Only save if the flag is true
         if save:
@@ -295,6 +299,18 @@ class RRule(models.Model):
 
         return dt
 
+    def offset(self, dt) -> datetime:
+        """
+        Offsets a given datetime by the number of days specified by day_offset.
+        :param dt:
+        :return dt:
+        """
+        return fleming.add_timedelta(
+            dt,
+            timedelta(days=self.day_offset),
+            within_tz=self.time_zone
+        ) if self.day_offset else dt
+
     def refresh_next_occurrence(self, current_time=None):
         """
         Sets the next occurrence date based on the current rrule param definition. The date will be after the
@@ -310,7 +326,7 @@ class RRule(models.Model):
         if next_occurrence:
             # Only set if the new time is still greater than now
             if next_occurrence > datetime.utcnow():
-                self.next_occurrence = next_occurrence
+                self.next_occurrence = self.offset(next_occurrence)
         else:
             self.next_occurrence = next_occurrence
 
@@ -334,6 +350,9 @@ class RRule(models.Model):
 
             # Convert back to utc before saving
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
+
+            # Offset if applicable
+            self.next_occurrence = self.offset(self.next_occurrence)
 
     def set_date_objects_for_params(self, params, is_new=False):
         """
@@ -396,7 +415,7 @@ class RRule(models.Model):
             # Evaluate if the first date should be retained.
             d = self.convert_to_utc(rule_set[0])
             if not start_date or d > start_date:
-                dates.append(d)
+                dates.append(self.offset(d))
 
             # Continue evaluating and appending dates to satisfy desired number,
             # retaining date for evaluation in the next iteration.
@@ -404,7 +423,7 @@ class RRule(models.Model):
                 d = self.get_next_occurrence(last_occurrence=d)
                 if d:
                     if not start_date or d > start_date:
-                        dates.append(d)
+                        dates.append(self.offset(d))
                 else:
                     break
         except Exception:  # pragma: no cover
