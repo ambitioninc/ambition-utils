@@ -232,6 +232,11 @@ class RRule(models.Model):
         # Convert to local time zone for getting next occurrence, otherwise time zones ahead of utc will return the same
         last_occurrence = fleming.convert_to_tz(last_occurrence, self.get_time_zone_object(), return_naive=True)
 
+        # If there is an offset and its negative, un-offset the last occurrence to match the rule_set's dates
+        # before offsetting again later
+        if self.day_offset and self.day_offset < 0:
+            last_occurrence = self.offset(last_occurrence, reverse=True)
+
         # Generate the next occurrence
         next_occurrence = rule_set.after(last_occurrence)
 
@@ -280,7 +285,10 @@ class RRule(models.Model):
             return False
 
         self.last_occurrence = self.next_occurrence
-        self.next_occurrence = self.offset(self.get_next_occurrence(self.last_occurrence))
+
+        self.next_occurrence = self.offset(
+            self.get_next_occurrence(self.last_occurrence)
+        )
 
         # Only save if the flag is true
         if save:
@@ -299,15 +307,19 @@ class RRule(models.Model):
 
         return dt
 
-    def offset(self, dt) -> datetime:
+    def offset(self, dt, reverse=False) -> datetime:
         """
         Offsets a given datetime by the number of days specified by day_offset.
         :param dt:
+        :param reverse:
         :return dt:
         """
+        # The offset gets multiplied by 1 or -1 depending on offset direction
+        multiplier = -1 if reverse else 1
+
         return fleming.add_timedelta(
             dt,
-            timedelta(days=self.day_offset),
+            timedelta(days=self.day_offset * multiplier),
             within_tz=self.time_zone
         ) if self.day_offset else dt
 

@@ -1442,7 +1442,6 @@ class RRuleTest(TestCase):
             datetime.datetime(2023, 1, 1)
         )
 
-
     def test_day_offset(self):
         """
         Assert that the field, day_offset, adjusts all generated dates.
@@ -1501,6 +1500,60 @@ class RRuleTest(TestCase):
         # Get next dates to compare against
         more_next_dates = rule.get_dates()
         self.assertEqual(next_dates, more_next_dates)
+
+    def test_next_occurrences_day_offset(self):
+        """
+        Make sure that the correct occurrences are selected when a day offset is configured.
+        """
+        params = {
+            'freq': rrule.WEEKLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        rrule1 = G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne',
+            day_offset=1
+        )
+
+        params = {
+            'freq': rrule.WEEKLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        rrule2 = G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerTwo',
+            day_offset=-1
+        )
+
+        self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 3))
+        self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 1))
+
+        with freeze_time('1-3-2017'):
+            RRule.objects.handle_overdue()
+
+            rrule1.refresh_from_db()
+            rrule2.refresh_from_db()
+
+            # Both should be progressed
+            self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 10))
+            self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 8))
+
+        with freeze_time('1-8-2017'):
+            RRule.objects.handle_overdue()
+
+            rrule1.refresh_from_db()
+            rrule2.refresh_from_db()
+
+            # Both should be progressed
+            self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 10))
+            self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 15))
+
 
 class RRuleWithExclusionTest(TestCase):
     def test_exclusion(self):
