@@ -217,11 +217,11 @@ class RRule(models.Model):
         # Return the rrule
         return rrule(**params)
 
-    def get_next_occurrence(self, last_occurrence=None, ignore_offset=False, force=False):
+    def get_next_occurrence(self, last_occurrence=None, calculate_offset=True, force=False):
         """
         Builds the rrule and returns the next date in the series or None of it is the end of the series
         :param last_occurrence: The last occurrence that was generated
-        :param ignore_offset: Ignore the given offset.
+        :param calculate_offset: Should the given offset be calculated?
         :param force: If the next occurrence is none, force the rrule to generate another
         :rtype: rrule or None
         """
@@ -235,7 +235,7 @@ class RRule(models.Model):
         last_occurrence = fleming.convert_to_tz(last_occurrence, self.get_time_zone_object(), return_naive=True)
 
         # Un-offset the last occurrence to match the rule_set's dates for .after() before offsetting again later
-        if not ignore_offset:
+        if calculate_offset:
             last_occurrence = self.offset(last_occurrence, reverse=True)
 
         # Generate the next occurrence
@@ -264,7 +264,7 @@ class RRule(models.Model):
         if next_occurrence:
             next_occurrence = self.convert_to_utc(next_occurrence)
 
-            if not ignore_offset:
+            if calculate_offset:
                 next_occurrence = self.offset(next_occurrence)
 
         # Return the next occurrence
@@ -434,7 +434,7 @@ class RRule(models.Model):
             # retaining date for evaluation in the next iteration.
             # The offset is ignored for this comparison and applied at appending.
             while len(dates) < num_dates:
-                d = self.get_next_occurrence(last_occurrence=d, ignore_offset=True)
+                d = self.get_next_occurrence(last_occurrence=d, calculate_offset=False)
                 if d:
                     if not start_date or d > start_date:
                         dates.append(self.offset(d))
