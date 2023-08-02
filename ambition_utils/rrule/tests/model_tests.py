@@ -1210,12 +1210,10 @@ class RRuleTest(TestCase):
         self.assertEqual(future_clone.next_occurrence.strftime(format), '2022-06-24')
         self.assertEqual(past_clone.next_occurrence.strftime(format), '2022-06-20')
 
-        # Assert that the rule created here is unchanged but the clone's byweekday params reflect their offsets.
-        # Future: MWF -> WFSu
-        # Past: MWF -> SMW
+        # Assert that the rule and clones all reflect MWF
         self.assertEqual(rule.rrule_params['byweekday'], [0, 2, 4])
-        self.assertEqual(future_clone.rrule_params['byweekday'], [2, 4, 6])
-        self.assertEqual(past_clone.rrule_params['byweekday'], [5, 0, 2])
+        self.assertEqual(future_clone.rrule_params['byweekday'], [0, 2, 4])
+        self.assertEqual(past_clone.rrule_params['byweekday'], [0, 2, 4])
 
         # Assert the generated dates are as expected.
         self.assertEqual(
@@ -1301,13 +1299,13 @@ class RRuleTest(TestCase):
         future_clone = rule.clone_with_day_offset(1)
         past_clone = rule.clone_with_day_offset(-1)
 
-        # Assert the updated until values are correct
+        # Assert the cloned until values are the same
         self.assertEqual(
-            parser.parse(rule.rrule_params['until']) + datetime.timedelta(days=1),
+            parser.parse(rule.rrule_params['until']),
             parser.parse(future_clone.rrule_params['until'])
         )
         self.assertEqual(
-            parser.parse(rule.rrule_params['until']) - datetime.timedelta(days=1),
+            parser.parse(rule.rrule_params['until']),
             parser.parse(past_clone.rrule_params['until'])
         )
 
@@ -1358,7 +1356,7 @@ class RRuleTest(TestCase):
 
         # Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
         self.assertEqual(
-            rule.generate_dates(),
+            rule.get_dates(),
             [
                 datetime.datetime(2022, 10, 29, 7),
                 datetime.datetime(2022, 10, 30, 8),
@@ -1373,7 +1371,7 @@ class RRuleTest(TestCase):
 
         # One day before each date in the regular series.
         self.assertEqual(
-            past_clone.generate_dates(),
+            past_clone.get_dates(),
             [
                 datetime.datetime(2022, 10, 28, 7),
                 datetime.datetime(2022, 10, 29, 7),
