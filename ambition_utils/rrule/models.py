@@ -135,6 +135,7 @@ class RRule(models.Model):
     # The name of the method to call on the related_object when the recurrence has expired
     related_object_handler_name = models.TextField(default=None, null=True, blank=True)
 
+    # An optional number of days to offset occurrences by
     day_offset = models.SmallIntegerField(blank=True, null=True)
 
     # Custom object manager
@@ -216,10 +217,11 @@ class RRule(models.Model):
         # Return the rrule
         return rrule(**params)
 
-    def get_next_occurrence(self, last_occurrence=None, force=False):
+    def get_next_occurrence(self, last_occurrence=None, ignore_offset=False, force=False):
         """
         Builds the rrule and returns the next date in the series or None of it is the end of the series
         :param last_occurrence: The last occurrence that was generated
+        :param ignore_offset: Ignore the given offset.
         :param force: If the next occurrence is none, force the rrule to generate another
         :rtype: rrule or None
         """
@@ -259,11 +261,12 @@ class RRule(models.Model):
             # Restore the rrule params
             self.rrule_params = original_rrule_params
 
-        # If there is a next occurrence, convert to utc and offset
+        # If there is a next occurrence, convert to utc
         if next_occurrence:
             next_occurrence = self.convert_to_utc(next_occurrence)
 
-            # next_occurrence = self.offset(next_occurrence)
+            if not ignore_offset:
+                next_occurrence = self.offset(next_occurrence)
 
         # Return the next occurrence
         return next_occurrence
@@ -286,9 +289,7 @@ class RRule(models.Model):
 
         self.last_occurrence = self.next_occurrence
 
-        self.next_occurrence = self.offset(
-            self.get_next_occurrence(self.last_occurrence)
-        )
+        self.next_occurrence = self.get_next_occurrence(self.last_occurrence)
 
         # Only save if the flag is true
         if save:
@@ -310,8 +311,8 @@ class RRule(models.Model):
     def offset(self, dt, reverse=False) -> datetime:
         """
         Offsets a given datetime by the number of days specified by day_offset.
-        :param dt:
-        :param reverse:
+        :param dt: The datetime to offset by day_offset
+        :param reverse: Reverse the offset calculation.
         :return dt:
         """
         # The offset gets multiplied by 1 or -1 depending on offset direction
@@ -336,7 +337,8 @@ class RRule(models.Model):
         next_occurrence = self.get_next_occurrence(last_occurrence=current_time)
 
         if next_occurrence:
-            # Only set if the new time is still greater than now
+            # Only set if the new time is still greater than now.
+            # Offset date if applicable.
             if next_occurrence > datetime.utcnow():
                 self.next_occurrence = self.offset(next_occurrence)
         else:
@@ -431,8 +433,9 @@ class RRule(models.Model):
 
             # Continue evaluating and appending dates to satisfy desired number,
             # retaining date for evaluation in the next iteration.
+            # The offset is ignored for this comparison and applied at appending.
             while len(dates) < num_dates:
-                d = self.get_next_occurrence(last_occurrence=d)
+                d = self.get_next_occurrence(last_occurrence=d, ignore_offset=True)
                 if d:
                     if not start_date or d > start_date:
                         dates.append(self.offset(d))
