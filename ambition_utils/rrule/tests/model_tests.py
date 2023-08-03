@@ -1210,12 +1210,10 @@ class RRuleTest(TestCase):
         self.assertEqual(future_clone.next_occurrence.strftime(format), '2022-06-24')
         self.assertEqual(past_clone.next_occurrence.strftime(format), '2022-06-20')
 
-        # Assert that the rule created here is unchanged but the clone's byweekday params reflect their offsets.
-        # Future: MWF -> WFSu
-        # Past: MWF -> SMW
+        # Assert that the rule and clones all reflect MWF
         self.assertEqual(rule.rrule_params['byweekday'], [0, 2, 4])
-        self.assertEqual(future_clone.rrule_params['byweekday'], [2, 4, 6])
-        self.assertEqual(past_clone.rrule_params['byweekday'], [5, 0, 2])
+        self.assertEqual(future_clone.rrule_params['byweekday'], [0, 2, 4])
+        self.assertEqual(past_clone.rrule_params['byweekday'], [0, 2, 4])
 
         # Assert the generated dates are as expected.
         self.assertEqual(
@@ -1301,13 +1299,13 @@ class RRuleTest(TestCase):
         future_clone = rule.clone_with_day_offset(1)
         past_clone = rule.clone_with_day_offset(-1)
 
-        # Assert the updated until values are correct
+        # Assert the cloned until values are the same
         self.assertEqual(
-            parser.parse(rule.rrule_params['until']) + datetime.timedelta(days=1),
+            parser.parse(rule.rrule_params['until']),
             parser.parse(future_clone.rrule_params['until'])
         )
         self.assertEqual(
-            parser.parse(rule.rrule_params['until']) - datetime.timedelta(days=1),
+            parser.parse(rule.rrule_params['until']),
             parser.parse(past_clone.rrule_params['until'])
         )
 
@@ -1358,7 +1356,7 @@ class RRuleTest(TestCase):
 
         # Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
         self.assertEqual(
-            rule.generate_dates(),
+            rule.get_dates(),
             [
                 datetime.datetime(2022, 10, 29, 7),
                 datetime.datetime(2022, 10, 30, 8),
@@ -1373,7 +1371,7 @@ class RRuleTest(TestCase):
 
         # One day before each date in the regular series.
         self.assertEqual(
-            past_clone.generate_dates(),
+            past_clone.get_dates(),
             [
                 datetime.datetime(2022, 10, 28, 7),
                 datetime.datetime(2022, 10, 29, 7),
@@ -1422,6 +1420,137 @@ class RRuleTest(TestCase):
                 datetime.datetime(2022, 10, 31, 8),
             ]
         )
+
+    def test_offset(self):
+        """
+        Assert the offset method adjusts a given date by the given number of days
+        """
+        self.assertEqual(
+            RRule(day_offset=1).offset(datetime.datetime(2023, 1, 1)),
+            datetime.datetime(2023, 1, 2)
+        )
+
+        self.assertEqual(
+            RRule(day_offset=-1).offset(datetime.datetime(2023, 1, 1)),
+            datetime.datetime(2022, 12, 31)
+        )
+
+        self.assertEqual(
+            RRule().offset(datetime.datetime(2023, 1, 1)),
+            datetime.datetime(2023, 1, 1)
+        )
+
+    def test_day_offset(self):
+        """
+        Assert that the field, day_offset, adjusts all generated dates.
+        """
+        params = {
+            'freq': rrule.MONTHLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2016, 12, 31),
+            'bymonthday': 1,
+            'until': datetime.datetime(2017, 4, 30),
+        }
+
+        rule = RRule(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            day_offset=1,
+        )
+        next_dates = rule.get_dates()
+
+        # Check a few dates
+        self.assertEqual(len(next_dates), 4)
+
+        self.assertEqual(next_dates[0], datetime.datetime(2017, 1, 2, 5))
+        self.assertEqual(next_dates[1], datetime.datetime(2017, 2, 2, 5))
+        self.assertEqual(next_dates[2], datetime.datetime(2017, 3, 2, 5))
+        self.assertEqual(next_dates[3], datetime.datetime(2017, 4, 2, 4))  # DST change for US/Eastern
+
+        # Run pre save again to make sure it doesn't mess up params
+        rule.pre_save_hooks()
+
+        # Get next dates to compare against
+        more_next_dates = rule.get_dates()
+        self.assertEqual(next_dates, more_next_dates)
+
+        rule = RRule(
+            rrule_params=params,
+            time_zone=pytz.timezone('US/Eastern'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.MockHandler',
+            day_offset=-1,
+        )
+
+        next_dates = rule.get_dates()
+
+        # Check a few dates
+        self.assertEqual(len(next_dates), 4)
+
+        self.assertEqual(next_dates[0], datetime.datetime(2016, 12, 31, 5))
+        self.assertEqual(next_dates[1], datetime.datetime(2017, 1, 31, 5))
+        self.assertEqual(next_dates[2], datetime.datetime(2017, 2, 28, 5))
+        self.assertEqual(next_dates[3], datetime.datetime(2017, 3, 31, 4))  # DST change for US/Eastern
+
+        # Run pre save again to make sure it doesn't mess up params
+        rule.pre_save_hooks()
+
+        # Get next dates to compare against
+        more_next_dates = rule.get_dates()
+        self.assertEqual(next_dates, more_next_dates)
+
+    def test_next_occurrences_day_offset(self):
+        """
+        Make sure that the correct occurrences are selected when a day offset is configured.
+        """
+        params = {
+            'freq': rrule.WEEKLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        rrule1 = G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne',
+            day_offset=1
+        )
+
+        params = {
+            'freq': rrule.WEEKLY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        rrule2 = G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerTwo',
+            day_offset=-1
+        )
+
+        self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 3))
+        self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 1))
+
+        with freeze_time('1-3-2017'):
+            RRule.objects.handle_overdue()
+
+            rrule1.refresh_from_db()
+            rrule2.refresh_from_db()
+
+            # Both should be progressed
+            self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 10))
+            self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 8))
+
+        with freeze_time('1-8-2017'):
+            RRule.objects.handle_overdue()
+
+            rrule1.refresh_from_db()
+            rrule2.refresh_from_db()
+
+            # Both should be progressed
+            self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 10))
+            self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 15))
 
 
 class RRuleWithExclusionTest(TestCase):
