@@ -2,7 +2,7 @@
 Release Notes
 =============
 
-3.1.8
+3.1.9
 -----
 * next_occurernce is only offset on save() if the object is new.
 * clone_with_day_offset no longer calls clone() to ensure the clone is not saved with an id before day_offset is set.
