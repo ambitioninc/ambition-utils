@@ -2,10 +2,13 @@
 Release Notes
 =============
 
+3.1.8
+-----
+* Added RRule.day_offset to support true offset support. clone_with_day_offset method now sets day_offset.
+
 3.1.7
 -----
 * RecurrenceForm will no longer refresh the next occurrence if the occurrence is expired.
-
 
 3.1.6
 -----
