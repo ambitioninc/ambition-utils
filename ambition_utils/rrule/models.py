@@ -135,6 +135,9 @@ class RRule(models.Model):
     # The name of the method to call on the related_object when the recurrence has expired
     related_object_handler_name = models.TextField(default=None, null=True, blank=True)
 
+    # An optional number of days to offset occurrences by
+    day_offset = models.SmallIntegerField(blank=True, null=True)
+
     # Custom object manager
     objects = RRuleManager()
 
@@ -214,10 +217,11 @@ class RRule(models.Model):
         # Return the rrule
         return rrule(**params)
 
-    def get_next_occurrence(self, last_occurrence=None, force=False):
+    def get_next_occurrence(self, last_occurrence=None, calculate_offset=True, force=False):
         """
         Builds the rrule and returns the next date in the series or None of it is the end of the series
         :param last_occurrence: The last occurrence that was generated
+        :param calculate_offset: Should the given offset be calculated?
         :param force: If the next occurrence is none, force the rrule to generate another
         :rtype: rrule or None
         """
@@ -229,6 +233,10 @@ class RRule(models.Model):
 
         # Convert to local time zone for getting next occurrence, otherwise time zones ahead of utc will return the same
         last_occurrence = fleming.convert_to_tz(last_occurrence, self.get_time_zone_object(), return_naive=True)
+
+        # Un-offset the last occurrence to match the rule_set's dates for .after() before offsetting again later
+        if calculate_offset:
+            last_occurrence = self.offset(last_occurrence, reverse=True)
 
         # Generate the next occurrence
         next_occurrence = rule_set.after(last_occurrence)
@@ -256,6 +264,9 @@ class RRule(models.Model):
         if next_occurrence:
             next_occurrence = self.convert_to_utc(next_occurrence)
 
+            if calculate_offset:
+                next_occurrence = self.offset(next_occurrence)
+
         # Return the next occurrence
         return next_occurrence
 
@@ -276,6 +287,7 @@ class RRule(models.Model):
             return False
 
         self.last_occurrence = self.next_occurrence
+
         self.next_occurrence = self.get_next_occurrence(self.last_occurrence)
 
         # Only save if the flag is true
@@ -295,6 +307,22 @@ class RRule(models.Model):
 
         return dt
 
+    def offset(self, dt, reverse=False) -> datetime:
+        """
+        Offsets a given datetime by the number of days specified by day_offset.
+        :param dt: The datetime to offset by day_offset
+        :param reverse: Reverse the offset calculation.
+        :return dt:
+        """
+        # The offset gets multiplied by 1 or -1 depending on offset direction
+        multiplier = -1 if reverse else 1
+
+        return fleming.add_timedelta(
+            dt,
+            timedelta(days=self.day_offset * multiplier),
+            within_tz=self.time_zone
+        ) if self.day_offset else dt
+
     def refresh_next_occurrence(self, current_time=None):
         """
         Sets the next occurrence date based on the current rrule param definition. The date will be after the
@@ -308,9 +336,10 @@ class RRule(models.Model):
         next_occurrence = self.get_next_occurrence(last_occurrence=current_time)
 
         if next_occurrence:
-            # Only set if the new time is still greater than now
+            # Only set if the new time is still greater than now.
+            # Offset date if applicable.
             if next_occurrence > datetime.utcnow():
-                self.next_occurrence = next_occurrence
+                self.next_occurrence = self.offset(next_occurrence)
         else:
             self.next_occurrence = next_occurrence
 
@@ -334,6 +363,9 @@ class RRule(models.Model):
 
             # Convert back to utc before saving
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
+
+        # Offset, if applicable, for old and new.
+        self.next_occurrence = self.offset(self.next_occurrence)
 
     def set_date_objects_for_params(self, params, is_new=False):
         """
@@ -396,15 +428,16 @@ class RRule(models.Model):
             # Evaluate if the first date should be retained.
             d = self.convert_to_utc(rule_set[0])
             if not start_date or d > start_date:
-                dates.append(d)
+                dates.append(self.offset(d))
 
             # Continue evaluating and appending dates to satisfy desired number,
             # retaining date for evaluation in the next iteration.
+            # The offset is ignored for this comparison and applied at appending.
             while len(dates) < num_dates:
-                d = self.get_next_occurrence(last_occurrence=d)
+                d = self.get_next_occurrence(last_occurrence=d, calculate_offset=False)
                 if d:
                     if not start_date or d > start_date:
-                        dates.append(d)
+                        dates.append(self.offset(d))
                 else:
                     break
         except Exception:  # pragma: no cover
@@ -434,41 +467,12 @@ class RRule(models.Model):
 
     def clone_with_day_offset(self, day_offset: int) -> RRule:
         """
-        Creates a clone of a passed RRule object offset by a specified number of days
+        Creates a clone of a passed RRule object with day_offset set.
         :param day_offset: The number of days to offset the clone's start date. Can be negative.
         """
-
-        # Create a clone of itself
         clone = self.clone()
-
-        # Manually update the rrule.dtstart & next_occurrence with the offset.
-        clone.rrule_params['dtstart'] = parser.parse(clone.rrule_params['dtstart']) + timedelta(days=day_offset)
-        clone.next_occurrence = clone.next_occurrence + timedelta(days=day_offset)
-
-        # Update until param by offsetting if it exists
-        if 'until' in clone.rrule_params:
-            clone.rrule_params['until'] = parser.parse(clone.rrule_params['until']) + timedelta(days=day_offset)
-
-        def offset_day(day: int) -> int:
-            """
-            Calculates the representation of a given day of the week plus the provided offset
-            For example, Tuesday (1) - 3 days yields Saturday (5).
-            :param int day: 0-6 that corresponds to RRule's weekday constants, MO-SU.
-            """
-            return (7 + (day + day_offset)) % 7
-
-        # Update byweekday param by offsetting. byweekday can be an array or integer.
-        if 'byweekday' in clone.rrule_params:
-            if isinstance(clone.rrule_params['byweekday'], list):
-                clone.rrule_params['byweekday'] = [
-                    offset_day(day) for day in clone.rrule_params['byweekday']
-                ]
-            else:
-                clone.rrule_params['byweekday'] = offset_day(clone.rrule_params['byweekday'])
-
-        # Lock it.
+        clone.day_offset = day_offset
         clone.save()
-
         return clone
 
     @classmethod
