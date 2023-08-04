@@ -1343,6 +1343,7 @@ class RRuleTest(TestCase):
     def test_clone_with_future_days_across_dst(self):
         """
         Assert that the resulting recurrence next occurrence reflects *its* timezone offset.
+        Fall Back.
         """
 
         rule = RRule.objects.create(
@@ -1381,11 +1382,11 @@ class RRuleTest(TestCase):
         )
 
     @freeze_time('10-31-2022')
-    def test_clone_with_offset_before_dst(self):
+    def test_clone_with_offset_from_dst(self):
         """
-        Assert that a clone, with a negative offset that puts it in DST, results in dates that respect the
-        DST transition once it gets there.
+        Assert that a clone, with a negative offset results in dates that respect a DST transition.
         Europe/Kiev goes from UTC+3 to UTC+2 in the early hours of 10/30.
+        Fall back.
         """
 
         # Starting in standard time
@@ -1395,7 +1396,8 @@ class RRuleTest(TestCase):
                 'dtstart': datetime.datetime(2022, 10, 31, 10),
                 'until': datetime.datetime(2022, 11, 3, 10),
             },
-            time_zone=pytz.timezone('Europe/Kiev')
+            time_zone=pytz.timezone('Europe/Kiev'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne',
         )
 
         # Times are UTC+2 because it is after the 10/30 transition.
@@ -1411,15 +1413,75 @@ class RRuleTest(TestCase):
 
         # Clone prior to the DST switch and ensure the times transition between 10/30 & 10/31.
         past_clone = rule.clone_with_day_offset(-3)
+        expected_clone_dates = [
+            datetime.datetime(2022, 10, 28, 7),
+            datetime.datetime(2022, 10, 29, 7),
+            datetime.datetime(2022, 10, 30, 8),
+            datetime.datetime(2022, 10, 31, 8),
+        ]
+        self.assertEqual(past_clone.generate_dates(), expected_clone_dates)
+
+        # Progress through dates and assert generated next_occurrence matches get_dates()
+        for x, expected_date in enumerate(expected_clone_dates):
+            with freeze_time(expected_date):
+                RRule.objects.handle_overdue()
+                past_clone.refresh_from_db()
+                if x < len(expected_clone_dates) - 1:
+                    self.assertEqual(
+                        past_clone.next_occurrence,
+                        expected_clone_dates[x + 1],
+                    )
+
+    @freeze_time('10-31-2022')
+    def test_clone_with_offset_to_dst(self):
+        """
+        Assert that a clone, with a negative offset results in dates that respect a DST transition.
+        Europe/Kiev goes from UTC+2 to UTC+3 in the early hours of 3/27.
+        Spring forward.
+        """
+
+        # Starting in standard time
+        rule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'dtstart': datetime.datetime(2022, 3, 28, 10),
+                'until': datetime.datetime(2022, 3, 31, 10),
+            },
+            time_zone=pytz.timezone('Europe/Kiev'),
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne',
+        )
+
+        # Times are UTC+2 because it is after the 10/30 transition.
         self.assertEqual(
-            past_clone.generate_dates(),
+            rule.generate_dates(),
             [
-                datetime.datetime(2022, 10, 28, 7),
-                datetime.datetime(2022, 10, 29, 7),
-                datetime.datetime(2022, 10, 30, 8),
-                datetime.datetime(2022, 10, 31, 8),
+                datetime.datetime(2022, 3, 28, 7),
+                datetime.datetime(2022, 3, 29, 7),
+                datetime.datetime(2022, 3, 30, 7),
+                datetime.datetime(2022, 3, 31, 7),
             ]
         )
+
+        # Clone prior to the DST switch and ensure the times transition between 10/30 & 10/31.
+        past_clone = rule.clone_with_day_offset(-3)
+        expected_clone_dates = [
+            datetime.datetime(2022, 3, 25, 8),
+            datetime.datetime(2022, 3, 26, 8),
+            datetime.datetime(2022, 3, 27, 7),
+            datetime.datetime(2022, 3, 28, 7),
+        ]
+        self.assertEqual(past_clone.generate_dates(), expected_clone_dates)
+
+        # Progress through dates and assert generated next_occurrence matches get_dates()
+        for x, expected_date in enumerate(expected_clone_dates):
+            with freeze_time(expected_date):
+                RRule.objects.handle_overdue()
+                past_clone.refresh_from_db()
+                if x < len(expected_clone_dates) - 1:
+                    self.assertEqual(
+                        past_clone.next_occurrence,
+                        expected_clone_dates[x + 1],
+                    )
 
     def test_offset(self):
         """
