@@ -317,10 +317,11 @@ class RRule(models.Model):
         # The offset gets multiplied by 1 or -1 depending on offset direction
         multiplier = -1 if reverse else 1
 
+        # Timezone is considered when not reversing offset for comparisons in rrule.after().
         return fleming.add_timedelta(
             dt,
             timedelta(days=self.day_offset * multiplier),
-            within_tz=self.time_zone
+            within_tz=self.time_zone if not reverse else None
         ) if self.day_offset else dt
 
     def refresh_next_occurrence(self, current_time=None):
@@ -364,8 +365,8 @@ class RRule(models.Model):
             # Convert back to utc before saving
             self.next_occurrence = self.convert_to_utc(self.next_occurrence)
 
-        # Offset, if applicable, for old and new.
-        self.next_occurrence = self.offset(self.next_occurrence)
+            # Offset, if applicable, for new objects.
+            self.next_occurrence = self.offset(self.next_occurrence)
 
     def set_date_objects_for_params(self, params, is_new=False):
         """
@@ -468,9 +469,11 @@ class RRule(models.Model):
     def clone_with_day_offset(self, day_offset: int) -> RRule:
         """
         Creates a clone of a passed RRule object with day_offset set.
+        clone() is not called to ensure .id is not set before .save() so offset is applied.
         :param day_offset: The number of days to offset the clone's start date. Can be negative.
         """
-        clone = self.clone()
+        clone = copy.deepcopy(self)
+        clone.id = None
         clone.day_offset = day_offset
         clone.save()
         return clone

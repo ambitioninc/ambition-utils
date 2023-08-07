@@ -2,6 +2,15 @@
 Release Notes
 =============
 
+3.1.10
+-----
+* offset() does not consider timezone when reversing.
+
+3.1.9
+-----
+* next_occurernce is only offset on save() if the object is new.
+* clone_with_day_offset no longer calls clone() to ensure the clone is not saved with an id before day_offset is set.
+
 3.1.8
 -----
 * Added RRule.day_offset to support true offset support. clone_with_day_offset method now sets day_offset.
