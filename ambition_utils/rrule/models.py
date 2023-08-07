@@ -317,10 +317,11 @@ class RRule(models.Model):
         # The offset gets multiplied by 1 or -1 depending on offset direction
         multiplier = -1 if reverse else 1
 
+        # Timezone is considered when not reversing offset for comparisons in rrule.after().
         return fleming.add_timedelta(
             dt,
             timedelta(days=self.day_offset * multiplier),
-            within_tz=self.time_zone
+            within_tz=self.time_zone if not reverse else None
         ) if self.day_offset else dt
 
     def refresh_next_occurrence(self, current_time=None):

@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.10
+-----
+* offset() does not consider timezone when reversing.
+
 3.1.9
 -----
 * next_occurernce is only offset on save() if the object is new.
