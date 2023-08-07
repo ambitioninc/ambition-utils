@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.11
+------
+* migration adjustment
+
 3.1.10
 -----
 * offset() does not consider timezone when reversing.
