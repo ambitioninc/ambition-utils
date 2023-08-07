@@ -1451,7 +1451,7 @@ class RRuleTest(TestCase):
             occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne',
         )
 
-        # Times are UTC+2 because it is after the 10/30 transition.
+        # Times are UTC+2 because it is after the 3/27 transition.
         self.assertEqual(
             rule.generate_dates(),
             [
@@ -1462,7 +1462,7 @@ class RRuleTest(TestCase):
             ]
         )
 
-        # Clone prior to the DST switch and ensure the times transition between 10/30 & 10/31.
+        # Clone prior to the DST switch and ensure the times transition between 3/26 & 3/27.
         past_clone = rule.clone_with_day_offset(-3)
         expected_clone_dates = [
             datetime.datetime(2022, 3, 25, 8),
