@@ -2,7 +2,7 @@
 Release Notes
 =============
 
-3.1.20
+3.1.10
 -----
 * offset() does not consider timezone when reversing.
 
