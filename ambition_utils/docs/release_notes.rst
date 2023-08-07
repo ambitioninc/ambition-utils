@@ -2,6 +2,61 @@
 Release Notes
 =============
 
+3.1.10
+-----
+* offset() does not consider timezone when reversing.
+
+3.1.9
+-----
+* next_occurernce is only offset on save() if the object is new.
+* clone_with_day_offset no longer calls clone() to ensure the clone is not saved with an id before day_offset is set.
+
+3.1.8
+-----
+* Added RRule.day_offset to support true offset support. clone_with_day_offset method now sets day_offset.
+
+3.1.7
+-----
+* RecurrenceForm will no longer refresh the next occurrence if the occurrence is expired.
+
+3.1.6
+-----
+* Update migrations to point to utils time zone field
+
+3.1.5
+-----
+* Support timezone field v4 all time zones
+
+3.1.4
+-----
+* Use all pytz time zones by default
+
+3.1.3
+-----
+* Fix import
+
+3.1.2
+-----
+* Switch rrule to use our time zone field for cast-on-assign behavior
+
+3.1.1
+-----
+* Django 4 support
+* Switch off time zone field fork
+
+3.0.3
+-----
+* Added the ability to set an exclusion rule on an rrule object
+
+3.0.2
+-----
+* Add ability to set error_messages on activities
+
+3.0.1
+-----
+* Restore forked timezone field for now. will be removed in 3.1
+* Only support py 3.7 and django 2.2, 3.2. other versions will be restored in 3.1
+
 3.0.0
 -----
 * Add support for python 3.8, 3.9

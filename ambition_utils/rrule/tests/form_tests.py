@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from dateutil import rrule
 from django.test import TestCase
@@ -117,6 +118,7 @@ class NestedRecurrenceFormTest(TestCase):
             'repeat_by': '',
             'until': None,
             'rrule': None,
+            'rrule_exclusion': None
         })
 
     def test_missing_after_occurrences_count(self):
@@ -448,43 +450,83 @@ class NestedRecurrenceFormTest(TestCase):
 
         self.assertEqual(rrule_model.occurrence_handler_path, 'ambition_utils.rrule.handler.OccurrenceHandler')
 
-    @freeze_time(datetime.datetime(2017, 6, 4))
-    def test_update_from_id_field(self):
+    def test_update(self):
         """
-        Verifies that an existing rrule object will get updated from passing an id in the form data and that
-        the next recurrence is refreshed
+        Verifies an existing RRule object will be updated when the id of the RRule object is passed in the form data.
+        The next occurrence is refreshed when the occurrence is not expired to ensure the next occurrence is not
+        updated before its handler runs.
         """
-        data = {
-            'freq': rrule.DAILY,
+        # Create an object, update its next occurrence, and assert it changes.
+        with freeze_time(datetime.datetime(2017, 6, 4)):
+            data = {
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': '6/4/2017',
+                'byhour': '0',
+                'time_zone': 'UTC',
+                'ends': RecurrenceEnds.NEVER,
+            }
+            form = RecurrenceForm(data=data)
+            self.assertTrue(form.is_valid())
+            rrule_model = form.save(
+                occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
+            )
+            self.assertEqual(RRule.objects.count(), 1)
+            self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 4))
+
+            # Handle overdue and assert next day.
+            RRule.objects.update_next_occurrences([rrule_model])
+            self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 5))
+
+        # Next day. Update object's start date, by passing RRule.id along. Ensure next occurrence is not updated
+        # by the update since it's overdue.
+        with freeze_time(datetime.datetime(2017, 6, 5)):
+            data['rrule'] = str(rrule_model.id)
+            data['dtstart'] = '6/7/2017'
+
+            form = RecurrenceForm(data=data)
+            self.assertTrue(form.is_valid())
+            rrule_model = form.save(
+                occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
+            )
+            self.assertEqual(RRule.objects.count(), 1)
+
+            # Next occurrence should not be updated because it is expired and needs to be resolved by its handler.
+            self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 5))
+
+            # Handle overdue and assert next occurrence now reflects the new start date instead of the next day, 6/6.
+            RRule.objects.update_next_occurrences([rrule_model])
+            self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
+
+    def test_exclusion_rule(self):
+        exclusion_data = {
+            'freq': rrule.MONTHLY,
             'interval': 1,
-            'dtstart': '6/4/2017',
+            'dtstart': '6/1/2023',
             'byhour': '0',
+            'bysetpos': 2,
+            'bynweekday': json.dumps([[0, 2]]),
+            'ends': RecurrenceEnds.NEVER,
+            'repeat_by': 'DAY_OF_THE_WEEK_START'
+        }
+        data = {
+            'freq': rrule.WEEKLY,
+            'interval': 1,
+            'dtstart': '6/1/2023',
+            'byhour': '0',
+            'byweekday': json.dumps([0]),
             'time_zone': 'UTC',
             'ends': RecurrenceEnds.NEVER,
+            'rrule_exclusion': json.dumps(exclusion_data)
         }
         form = RecurrenceForm(data=data)
         self.assertTrue(form.is_valid())
-        rrule_model = form.save(
-            occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
+        rrule_model = form.save()
+        self.assertEqual(
+            rrule_model.get_dates(num_dates=10),
+            [datetime.datetime(2023, 6, 5, 0, 0), datetime.datetime(2023, 6, 19, 0, 0),
+             datetime.datetime(2023, 6, 26, 0, 0), datetime.datetime(2023, 7, 3, 0, 0),
+             datetime.datetime(2023, 7, 17, 0, 0), datetime.datetime(2023, 7, 24, 0, 0),
+             datetime.datetime(2023, 7, 31, 0, 0), datetime.datetime(2023, 8, 7, 0, 0),
+             datetime.datetime(2023, 8, 21, 0, 0), datetime.datetime(2023, 8, 28, 0, 0)]
         )
-        self.assertEqual(RRule.objects.count(), 1)
-        self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 4))
-
-        # Handle update
-        data = {
-            'rrule': str(rrule_model.id),
-            'freq': rrule.DAILY,
-            'interval': 1,
-            'dtstart': '6/7/2017',
-            'byhour': '0',
-            'time_zone': 'UTC',
-            'ends': RecurrenceEnds.NEVER,
-        }
-
-        form = RecurrenceForm(data=data)
-        self.assertTrue(form.is_valid())
-        rrule_model = form.save(
-            occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
-        )
-        self.assertEqual(RRule.objects.count(), 1)
-        self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
