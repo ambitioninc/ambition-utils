@@ -1,4 +1,4 @@
-celery<5
+celery>=5.2.2
 coverage
 coveralls
 django-nose
