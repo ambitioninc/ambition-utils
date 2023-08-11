@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.2.0
+------
+* psycopg3
+
 3.1.11
 ------
 * migration adjustment
