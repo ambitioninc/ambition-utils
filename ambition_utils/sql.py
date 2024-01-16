@@ -75,7 +75,7 @@ class SQLBase(object):
                 self._raw_results = list(cursor.fetchall())
                 self._raw_columns = [col[0] for col in cursor.description]
             except ProgrammingError as e:
-                if str(e) == 'no results to fetch':
+                if str(e) == 'no results to fetch' or str(e) == "the last operation didn't produce a result":
                     self._raw_results = []
                     self._raw_columns = []
                 else:  # pragma: no cover  No expected to hit this, but raise just in case

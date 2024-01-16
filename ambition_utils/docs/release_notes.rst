@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.2.0
+------
+* Add support for psycopg (psycopg3). Still supports psycopg2.
+
 3.1.11
 ------
 * migration adjustment
