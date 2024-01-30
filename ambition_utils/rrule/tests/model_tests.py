@@ -1633,8 +1633,8 @@ class RRuleTest(TestCase):
         with freeze_time('1-10-2023'):
             # Catch the recurrence object up.
             while rrule1.next_occurrence <= datetime.datetime.now():
-                 RRule.objects.handle_overdue()
-                 rrule1.refresh_from_db()
+                RRule.objects.handle_overdue()
+                rrule1.refresh_from_db()
             self.assertEqual(rrule1.next_occurrence, datetime.datetime(2023, 1, 11))
 
             # Create a clone with an offset and assert that the clone's next occurrence is 1/11 -5 = 1/6.
