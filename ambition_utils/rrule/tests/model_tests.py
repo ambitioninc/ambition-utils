@@ -1614,6 +1614,37 @@ class RRuleTest(TestCase):
             self.assertEqual(rrule1.next_occurrence, datetime.datetime(2017, 1, 10))
             self.assertEqual(rrule2.next_occurrence, datetime.datetime(2017, 1, 15))
 
+    def test_next_occurrence_clone_with_offset(self):
+        """
+        Cloning an established object with an offset should yield a next_occurrence of the object's with the offset.
+        """
+        # A daily recurrence with a multi-day offset to highlight differences clearly.
+        rrule1 = G(
+            RRule,
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2023, 1, 1),
+            },
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne',
+        )
+
+        # Many days into the future
+        with freeze_time('1-10-2023'):
+            # Catch the recurrence object up.
+            while rrule1.next_occurrence <= datetime.datetime.now():
+                RRule.objects.handle_overdue()
+                rrule1.refresh_from_db()
+            self.assertEqual(rrule1.next_occurrence, datetime.datetime(2023, 1, 11))
+
+            # Create a clone with an offset and assert that the clone's next occurrence is 1/11 -5 = 1/6.
+            rrule2 = rrule1.clone_with_day_offset(day_offset=-5)
+            self.assertEqual(rrule2.next_occurrence, datetime.datetime(2023, 1, 6))
+
+            # First object is unchanged
+            rrule1.refresh_from_db()
+            self.assertEqual(rrule1.next_occurrence, datetime.datetime(2023, 1, 11))
+
 
 class RRuleWithExclusionTest(TestCase):
     def test_exclusion(self):

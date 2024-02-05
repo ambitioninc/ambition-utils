@@ -351,9 +351,11 @@ class RRule(models.Model):
         """
         Ensure that all the date keys are properly set on all rrule params
         """
+        # A cloned object will not have a primary key but does have a next_occurrence that should not be reset
+        # to the first date in a series.
+        is_new = self.pk is None and self.last_occurrence is None
 
         # Convert the rrule and exclusion rrule params to properly set date keys
-        is_new = self.pk is None
         self.set_date_objects_for_params(self.rrule_params, is_new=is_new)
         self.set_date_objects_for_params(self.rrule_exclusion_params, is_new=is_new)
 
@@ -470,11 +472,13 @@ class RRule(models.Model):
         """
         Creates a clone of a passed RRule object with day_offset set.
         clone() is not called to ensure .id is not set before .save() so offset is applied.
+        The clone's next_occurrence is set to the offset of this object.
         :param day_offset: The number of days to offset the clone's start date. Can be negative.
         """
         clone = copy.deepcopy(self)
         clone.id = None
         clone.day_offset = day_offset
+        clone.next_occurrence = clone.offset(clone.next_occurrence)
         clone.save()
         return clone
 
