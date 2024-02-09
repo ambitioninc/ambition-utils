@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.12
+------
+* RRule clones will now retain the next_occurrence of the source. 
+
 3.1.11
 ------
 * migration adjustment
