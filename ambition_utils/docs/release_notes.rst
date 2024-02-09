@@ -4,7 +4,7 @@ Release Notes
 
 3.1.12
 ------
-* clone_with_day_offset now returns an object with the next_occurrence of the source object.
+* RRule clones will now retain the next_occurrence of the source. 
 
 3.1.11
 ------
