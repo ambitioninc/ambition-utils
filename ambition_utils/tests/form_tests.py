@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 from ambition_utils.forms import NestedFormMixin, NestedFormConfig
 from ambition_utils.tests.models import FakeModel

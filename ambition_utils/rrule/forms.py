@@ -250,12 +250,13 @@ class RecurrenceForm(RRuleForm):
         Saves the RRule model and returns it
         """
         # Keep track if this is an existing rrule that needs occurrence updated
-        need_to_refresh_next_recurrence = False
+        need_to_refresh_next_occurrence = False
 
         # Get the rrule model from the cleaned data
         rrule_model = self.cleaned_data.get('rrule')
         if rrule_model:
-            need_to_refresh_next_recurrence = True
+            # Refresh if the next occurrence is not expired.
+            need_to_refresh_next_occurrence = rrule_model.next_occurrence > datetime.utcnow()
         else:
             # Use the recurrence passed into save kwargs
             rrule_model = kwargs.get('recurrence') or RRule()
@@ -273,7 +274,7 @@ class RecurrenceForm(RRuleForm):
                     pass
 
         # Check if this was an existing model that needs to have its next occurrence updated
-        if need_to_refresh_next_recurrence:
+        if need_to_refresh_next_occurrence:
             rrule_model.refresh_next_occurrence()
 
         rrule_model.save()

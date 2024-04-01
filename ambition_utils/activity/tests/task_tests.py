@@ -1,6 +1,6 @@
 from celery import Celery
 from django.test import TestCase
-from mock import patch
+from unittest.mock import patch
 from uuid import uuid4
 
 from ambition_utils.activity.tasks import ActivityManagedTaskMixin, track_activity
