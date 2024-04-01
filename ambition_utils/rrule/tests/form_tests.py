@@ -498,6 +498,53 @@ class NestedRecurrenceFormTest(TestCase):
             RRule.objects.update_next_occurrences([rrule_model])
             self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 7))
 
+    def test_update_finished_rrule(self):
+        """
+        Handles the case of trying to update an rrule that has completed so it no longer has a next
+        occurrence. It should be able to update without any errors.
+        """
+        # Create an object, update its next occurrence, and assert it changes.
+        with freeze_time(datetime.datetime(2017, 6, 6)):
+            data = {
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': '6/4/2017',
+                'byhour': '0',
+                'time_zone': 'UTC',
+                'ends': RecurrenceEnds.ON,
+                'until': '6/5/2017',
+            }
+            form = RecurrenceForm(data=data)
+            self.assertTrue(form.is_valid())
+            rrule_model = form.save(
+                occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
+            )
+
+            # Refresh next occurrence so it completes
+            rrule_model.refresh_next_occurrence()
+            rrule_model.save()
+            self.assertEqual(RRule.objects.count(), 1)
+            self.assertEqual(rrule_model.next_occurrence, None)
+
+        # In the future from the original completion date, try to update the rrule
+        with freeze_time(datetime.datetime(2017, 6, 9)):
+            data = {
+                'rrule': str(rrule_model.id),
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': '6/4/2017',
+                'byhour': '0',
+                'time_zone': 'UTC',
+                'ends': RecurrenceEnds.ON,
+                'until': '6/10/2017',
+            }
+            form = RecurrenceForm(data=data)
+            self.assertTrue(form.is_valid())
+            rrule_model = form.save(
+                occurrence_handler_path='ambition_utils.rrule.handler.OccurrenceHandler',
+            )
+            self.assertEqual(rrule_model.next_occurrence, datetime.datetime(2017, 6, 10))
+
     def test_exclusion_rule(self):
         exclusion_data = {
             'freq': rrule.MONTHLY,

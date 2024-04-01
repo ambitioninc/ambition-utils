@@ -225,7 +225,7 @@ class RecurrenceForm(RRuleForm):
         # cause the base form init to fail
         kwargs.pop('instance', None)
 
-        super(RecurrenceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def clean_rrule_exclusion(self):
         # Get the value from data
@@ -255,11 +255,14 @@ class RecurrenceForm(RRuleForm):
         # Get the rrule model from the cleaned data
         rrule_model = self.cleaned_data.get('rrule')
         if rrule_model:
-            # Refresh if the next occurrence is not expired.
-            need_to_refresh_next_occurrence = rrule_model.next_occurrence > datetime.utcnow()
+            need_to_refresh_next_occurrence = True
         else:
             # Use the recurrence passed into save kwargs
             rrule_model = kwargs.get('recurrence') or RRule()
+
+        # Do not refresh if the next occurrence has not been handled yet
+        if rrule_model.next_occurrence and rrule_model.next_occurrence <= datetime.utcnow():
+            need_to_refresh_next_occurrence = False
 
         # Create or update the rule
         rrule_model.rrule_params = self.get_rrule_params_from_cleaned_data()

@@ -2,6 +2,10 @@
 Release Notes
 =============
 
+3.1.12
+------
+* Fix possible null date comparison in rrule form update logic
+
 3.1.11
 ------
 * migration adjustment
