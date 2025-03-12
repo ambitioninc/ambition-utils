@@ -39,9 +39,9 @@ class RRuleManager(models.Manager):
 
     @transaction.atomic
     def handle_overdue(
-        self, 
-        occurrence_handler_limit=None, 
-        related_model_handler_limit=None, 
+        self,
+        occurrence_handler_limit=None,
+        related_model_handler_limit=None,
         **kwargs
     ):
         """

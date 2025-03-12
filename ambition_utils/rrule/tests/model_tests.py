@@ -238,7 +238,8 @@ class RRuleManagerTest(TestCase):
         self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 1))
         self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 2))
 
-        # Setup our expected classes, each handler needs to occur twice, except for handler two which should occur three times
+        # Setup our expected classes, each handler needs to occur twice
+        # except for handler two which should occur three times
         expected_classes = [
             {HandlerTwo},
             {HandlerOne},
@@ -264,7 +265,7 @@ class RRuleManagerTest(TestCase):
         self.assertEqual(recurrences[1].next_occurrence, datetime.datetime(2017, 1, 4))
         self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 4))
         self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 4))
-        
+
 
 class RRuleTest(TestCase):
 
