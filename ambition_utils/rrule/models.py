@@ -1,18 +1,23 @@
 from __future__ import annotations
+
+import copy
+import logging
 from datetime import datetime, timedelta
+from typing import List
+
+import pytz
 from dateutil import parser
 from dateutil.rrule import rrule, rruleset
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
+from django.db.models import F, Window
+from django.db.models.functions import RowNumber
 from django.utils.module_loading import import_string
 from fleming import fleming
 from manager_utils import bulk_update
+
 from ambition_utils.fields import TimeZoneField
-from typing import List
-import copy
-import pytz
-import logging
 
 LOG = logging.getLogger(__name__)
 
@@ -33,20 +38,27 @@ class RRuleManager(models.Manager):
         return rrule_objects
 
     @transaction.atomic
-    def handle_overdue(self, **kwargs):
+    def handle_overdue(
+        self, 
+        occurrence_handler_limit=None, 
+        related_model_handler_limit=None, 
+        **kwargs
+    ):
         """
         Handles any overdue rrules
+        :param occurrence_handler_limit: The maximum number of occurrence handlers to process
+        :param related_model_handler_limit: The maximum number of related model handlers to process
         :param kwargs: the old optional kwarg filters for specifying additional occurrence handler filters
         """
-        self.process_occurrence_handler_paths(**kwargs)
-        self.process_related_model_handlers()
+        self.process_occurrence_handler_paths(limit=occurrence_handler_limit, **kwargs)
+        self.process_related_model_handlers(limit=related_model_handler_limit)
 
-    def process_occurrence_handler_paths(self, **kwargs):
+    def process_occurrence_handler_paths(self, limit=None, **kwargs):
         """
         This is the old style of processing overdue rrules
         """
         # Get instances of all overdue recurrence handler classes
-        instances = self.overdue_handler_class_instances(**kwargs)
+        instances = self.overdue_handler_class_instances(limit=limit, **kwargs)
 
         # Build a list of rrules that get returned from the handler
         rrules = []
@@ -56,13 +68,20 @@ class RRuleManager(models.Manager):
         # Bulk update the next occurrences
         RRule.objects.update_next_occurrences(rrule_objects=rrules)
 
-    def process_related_model_handlers(self):
+    def process_related_model_handlers(self, limit=None):
         # Get the rrule objects that are overdue and need to be handled
         rrule_objects = self.get_queryset().filter(
             next_occurrence__lte=datetime.utcnow(),
             related_object_handler_name__isnull=False,
             related_object_id__isnull=False,
-        ).prefetch_related('related_object')
+        ).order_by(
+            'next_occurrence',
+            'id'
+        ).prefetch_related(
+            'related_object'
+        )
+        if limit:
+            rrule_objects = rrule_objects[:limit]
 
         rrules_to_advance = []
         for rrule_object in rrule_objects:
@@ -78,18 +97,24 @@ class RRuleManager(models.Manager):
 
         return rrules_to_advance
 
-    def overdue_handler_class_instances(self, **kwargs):
+    def overdue_handler_class_instances(self, limit=None, **kwargs):
         """
         Returns a set of instances for any handler with an old next_occurrence
         """
 
-        # Get the rrule objects that are overdue and need to be handled
+        # Get overdue rrules where the next_occurrence is the earliest for each occurrence_handler_path
         rrule_objects = self.get_queryset().filter(
             next_occurrence__lte=datetime.utcnow(),
             **kwargs
-        ).distinct(
-            'occurrence_handler_path'
-        )
+        ).annotate(
+            row_num=Window(
+                expression=RowNumber(),
+                partition_by=F('occurrence_handler_path'),
+                order_by=F('next_occurrence').asc()
+            )
+        ).filter(row_num=1).order_by('next_occurrence', 'occurrence_handler_path')
+        if limit:
+            rrule_objects = rrule_objects[:limit]
 
         # Return instances of the handler classes
         handler_classes = [
