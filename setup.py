@@ -1,8 +1,10 @@
 # import multiprocessing to avoid this bug (http://bugs.python.org/issue15881#msg170215)
 import multiprocessing
+
 assert multiprocessing
 import re
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 
 def get_version():
@@ -44,9 +46,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Framework :: Django',
-        'Framework :: Django :: 3.2',
-        'Framework :: Django :: 4.0',
-        'Framework :: Django :: 4.1',
         'Framework :: Django :: 4.2',
     ],
     license='MIT',

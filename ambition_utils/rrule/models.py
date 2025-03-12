@@ -115,7 +115,12 @@ class RRuleManager(models.Manager):
                 partition_by=F('occurrence_handler_path'),
                 order_by=F('next_occurrence').asc()
             )
-        ).filter(row_num=1).order_by('next_occurrence', 'occurrence_handler_path')
+        ).filter(
+            row_num=1
+        ).order_by(
+            'next_occurrence', 
+            'occurrence_handler_path'
+        )
         if limit:
             rrule_objects = rrule_objects[:limit]
 
