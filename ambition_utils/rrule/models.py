@@ -118,7 +118,7 @@ class RRuleManager(models.Manager):
         ).filter(
             row_num=1
         ).order_by(
-            'next_occurrence', 
+            'next_occurrence',
             'occurrence_handler_path'
         )
         if limit:
