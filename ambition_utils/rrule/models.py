@@ -42,16 +42,18 @@ class RRuleManager(models.Manager):
         self,
         occurrence_handler_limit=None,
         related_model_handler_limit=None,
+        related_model_handler_filters=None,
         **kwargs
     ):
         """
         Handles any overdue rrules
         :param occurrence_handler_limit: The maximum number of occurrence handlers to process
         :param related_model_handler_limit: The maximum number of related model handlers to process
+        :param related_model_handler_filters: A dict of filters to apply to the related model handlers queryset
         :param kwargs: the old optional kwarg filters for specifying additional occurrence handler filters
         """
         self.process_occurrence_handler_paths(limit=occurrence_handler_limit, **kwargs)
-        self.process_related_model_handlers(limit=related_model_handler_limit)
+        self.process_related_model_handlers(limit=related_model_handler_limit, filters=related_model_handler_filters)
 
     def process_occurrence_handler_paths(self, limit=None, **kwargs):
         """
@@ -68,12 +70,13 @@ class RRuleManager(models.Manager):
         # Bulk update the next occurrences
         RRule.objects.update_next_occurrences(rrule_objects=rrules)
 
-    def process_related_model_handlers(self, limit=None):
+    def process_related_model_handlers(self, limit=None, filters=None):
         # Get the rrule objects that are overdue and need to be handled
         rrule_objects = self.get_queryset().filter(
             next_occurrence__lte=datetime.utcnow(),
             related_object_handler_name__isnull=False,
             related_object_id__isnull=False,
+            **(filters or {})
         ).order_by(
             'next_occurrence',
             'id'
