@@ -1,4 +1,4 @@
-django-timezone-field
+django-timezone-field<6
 fleming>=0.7.0
 django-manager-utils>=3.0.1
 
