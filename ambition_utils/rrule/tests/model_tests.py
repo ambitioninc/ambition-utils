@@ -1,8 +1,8 @@
 import datetime
-import fleming
 
+import fleming
 import pytz
-from dateutil import rrule, parser
+from dateutil import parser, rrule
 from django.test import TestCase
 from django_dynamic_fixture import G
 from freezegun import freeze_time
@@ -51,6 +51,58 @@ class HandlerThree(OccurrenceHandler):
 
 
 class RRuleManagerTest(TestCase):
+    def add_test_rules(self):
+        # Make a program with HandlerOne that is not overdue
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
+
+        # Make an overdue program with HandlerOne
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1),
+        }
+
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
+
+        # Make an overdue program with HandlerTwo
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 1),
+        }
+
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerTwo'
+        )
+
+        # Make a program with HandlerThree that is not overdue
+        params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+
+        G(
+            RRule,
+            rrule_params=params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerThree'
+        )
 
     def test_update_next_occurrences(self):
         """
@@ -133,57 +185,8 @@ class RRuleManagerTest(TestCase):
         Should return the classes that have overdue rrule objects
         """
 
-        # Make a program with HandlerOne that is not overdue
-        params = {
-            'freq': rrule.DAILY,
-            'interval': 1,
-            'dtstart': datetime.datetime(2017, 1, 2),
-        }
-
-        G(
-            RRule,
-            rrule_params=params,
-            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
-        )
-
-        # Make an overdue program with HandlerOne
-        params = {
-            'freq': rrule.DAILY,
-            'interval': 1,
-            'dtstart': datetime.datetime(2017, 1, 1),
-        }
-
-        G(
-            RRule,
-            rrule_params=params,
-            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
-        )
-
-        # Make an overdue program with HandlerTwo
-        params = {
-            'freq': rrule.DAILY,
-            'interval': 1,
-            'dtstart': datetime.datetime(2017, 1, 1),
-        }
-
-        G(
-            RRule,
-            rrule_params=params,
-            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerTwo'
-        )
-
-        # Make a program with HandlerThree that is not overdue
-        params = {
-            'freq': rrule.DAILY,
-            'interval': 1,
-            'dtstart': datetime.datetime(2017, 1, 2),
-        }
-
-        G(
-            RRule,
-            rrule_params=params,
-            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerThree'
-        )
+        # Add the test rules
+        self.add_test_rules()
 
         # Get and verify the classes
         classes = {
@@ -207,6 +210,61 @@ class RRuleManagerTest(TestCase):
         # For coverage, make handler 3 overdue
         with freeze_time('1-3-2017'):
             RRule.objects.handle_overdue()
+
+    @freeze_time('1-1-2017')
+    def test_run_with_limit(self):
+        """
+        Test running with a limit
+        """
+
+        # Add the test rules
+        self.add_test_rules()
+
+        # Get and verify the classes
+        classes = {
+            instance.__class__
+            for instance in RRule.objects.overdue_handler_class_instances(limit=1)
+        }
+
+        self.assertEqual(classes, {HandlerOne})
+
+        # Handle overdue rrules
+        RRule.objects.handle_overdue(occurrence_handler_limit=1)
+
+        # Check the recurrences, only handler one should be updated
+        recurrences = list(RRule.objects.order_by('id'))
+        self.assertEqual(recurrences[0].next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(recurrences[1].next_occurrence, datetime.datetime(2017, 1, 2))
+        self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 1))
+        self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 2))
+
+        # Setup our expected classes, each handler needs to occur twice
+        # except for handler two which should occur three times
+        expected_classes = [
+            {HandlerTwo},
+            {HandlerOne},
+            {HandlerThree},
+            {HandlerTwo},
+            {HandlerOne},
+            {HandlerThree},
+            {HandlerTwo},
+            set(),
+        ]
+        for expected_class in expected_classes:
+            with freeze_time('1-3-2017'):
+                classes = {
+                    instance.__class__
+                    for instance in RRule.objects.overdue_handler_class_instances(limit=1)
+                }
+                self.assertEqual(classes, expected_class)
+                RRule.objects.handle_overdue(occurrence_handler_limit=1)
+
+        # Assert that the recurrences are updated
+        recurrences = list(RRule.objects.order_by('id'))
+        self.assertEqual(recurrences[0].next_occurrence, datetime.datetime(2017, 1, 4))
+        self.assertEqual(recurrences[1].next_occurrence, datetime.datetime(2017, 1, 4))
+        self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 4))
+        self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 4))
 
 
 class RRuleTest(TestCase):
@@ -266,6 +324,102 @@ class RRuleTest(TestCase):
             self.assertEqual(program.end_called, 1)
             self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
             self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 17))
+
+    def test_related_object_handlers_with_limit(self):
+        """
+        Handle overdue related object handlers with a limit
+        """
+        program = Program.objects.create(name='Program 1')
+        start_rrule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 9),
+                'byhour': 9,
+            },
+            related_object=program,
+            related_object_handler_name='handle_start_recurrence',
+        )
+        end_rrule = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 17),
+                'byhour': 17,
+            },
+            related_object=program,
+            related_object_handler_name='handle_end_recurrence',
+        )
+        program.start_recurrence = start_rrule
+        program.end_recurrence = end_rrule
+        program.save()
+
+        program2 = Program.objects.create(name='Program 2')
+        start_rrule2 = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 9),
+                'byhour': 9,
+            },
+            related_object=program2,
+            related_object_handler_name='handle_start_recurrence',
+        )
+        end_rrule2 = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 17),
+                'byhour': 17,
+            },
+            related_object=program2,
+            related_object_handler_name='handle_end_recurrence',
+        )
+        program2.start_recurrence = start_rrule2
+        program2.end_recurrence = end_rrule2
+        program2.save()
+
+        # Make sure only start handler is called for program 1
+        with freeze_time(datetime.datetime(2022, 6, 1, 9)):
+            RRule.objects.handle_overdue(related_model_handler_limit=1)
+            program.refresh_from_db()
+            program2.refresh_from_db()
+            self.assertEqual(program.start_called, 1)
+            self.assertEqual(program.end_called, 0)
+            self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
+            self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 17))
+            self.assertEqual(program2.start_called, 0)
+            self.assertEqual(program2.end_called, 0)
+            self.assertEqual(program2.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 9))
+            self.assertEqual(program2.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 17))
+
+        # Make sure only start handler is called for program 2
+        with freeze_time(datetime.datetime(2022, 6, 1, 9)):
+            RRule.objects.handle_overdue(related_model_handler_limit=2)
+            program.refresh_from_db()
+            program2.refresh_from_db()
+            self.assertEqual(program.start_called, 1)
+            self.assertEqual(program.end_called, 0)
+            self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
+            self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 17))
+            self.assertEqual(program2.start_called, 1)
+            self.assertEqual(program2.end_called, 0)
+            self.assertEqual(program2.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
+            self.assertEqual(program2.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 1, 17))
+
+        # # Make sure only end handlers are called
+        with freeze_time(datetime.datetime(2022, 6, 1, 17)):
+            RRule.objects.handle_overdue(related_model_handler_limit=2)
+            program = Program.objects.get(id=program.id)
+            program2 = Program.objects.get(id=program2.id)
+            self.assertEqual(program.start_called, 1)
+            self.assertEqual(program.end_called, 1)
+            self.assertEqual(program.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
+            self.assertEqual(program.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 17))
+            self.assertEqual(program2.start_called, 1)
+            self.assertEqual(program2.end_called, 1)
+            self.assertEqual(program2.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
+            self.assertEqual(program2.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 17))
 
     def test_related_object_handlers_invalid_handler(self):
         """
