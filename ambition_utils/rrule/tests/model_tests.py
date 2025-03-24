@@ -50,6 +50,12 @@ class HandlerThree(OccurrenceHandler):
         ).order_by('id')
 
 
+class HandlerNoOp(OccurrenceHandler):
+
+    def handle(self):
+        return None
+
+
 class RRuleManagerTest(TestCase):
     def add_test_rules(self):
         # Make a program with HandlerOne that is not overdue
@@ -265,6 +271,64 @@ class RRuleManagerTest(TestCase):
         self.assertEqual(recurrences[1].next_occurrence, datetime.datetime(2017, 1, 4))
         self.assertEqual(recurrences[2].next_occurrence, datetime.datetime(2017, 1, 4))
         self.assertEqual(recurrences[3].next_occurrence, datetime.datetime(2017, 1, 4))
+
+    def test_run_with_no_op(self):
+        """
+        Test running with a no-op handler
+        """
+        rrule_params = {
+            'freq': rrule.DAILY,
+            'interval': 1,
+            'dtstart': datetime.datetime(2017, 1, 2),
+        }
+        no_op_rrule1 = G(
+            RRule,
+            rrule_params=rrule_params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerNoOp'
+        )
+        no_op_rrule2 = G(
+            RRule,
+            rrule_params=rrule_params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerNoOp'
+        )
+        rrule1 = G(
+            RRule,
+            rrule_params=rrule_params,
+            occurrence_handler_path='ambition_utils.rrule.tests.model_tests.HandlerOne'
+        )
+
+        # Process with a limit of 1, we should handle the no-op rrules
+        with freeze_time(datetime.datetime(2017, 1, 2)):
+            RRule.objects.handle_overdue(occurrence_handler_limit=1)
+
+        no_op_rrule1.refresh_from_db()
+        no_op_rrule2.refresh_from_db()
+        rrule1.refresh_from_db()
+        self.assertEqual(no_op_rrule1.time_last_handled, datetime.datetime(2017, 1, 2))
+        self.assertEqual(no_op_rrule2.time_last_handled, datetime.datetime(2017, 1, 2))
+        self.assertEqual(rrule1.time_last_handled, None)
+
+        # Process with a limit of 1, we should handle handler one
+        with freeze_time(datetime.datetime(2017, 1, 3)):
+            RRule.objects.handle_overdue(occurrence_handler_limit=1)
+
+        no_op_rrule1.refresh_from_db()
+        no_op_rrule2.refresh_from_db()
+        rrule1.refresh_from_db()
+        self.assertEqual(no_op_rrule1.time_last_handled, datetime.datetime(2017, 1, 2))
+        self.assertEqual(no_op_rrule2.time_last_handled, datetime.datetime(2017, 1, 2))
+        self.assertEqual(rrule1.time_last_handled, datetime.datetime(2017, 1, 3))
+
+        # Process again and we should go back to the no op handler
+        with freeze_time(datetime.datetime(2017, 1, 4)):
+            RRule.objects.handle_overdue(occurrence_handler_limit=1)
+
+        no_op_rrule1.refresh_from_db()
+        no_op_rrule2.refresh_from_db()
+        rrule1.refresh_from_db()    
+        self.assertEqual(no_op_rrule1.time_last_handled, datetime.datetime(2017, 1, 4))
+        self.assertEqual(no_op_rrule2.time_last_handled, datetime.datetime(2017, 1, 4))
+        self.assertEqual(rrule1.time_last_handled, datetime.datetime(2017, 1, 3))
 
 
 class RRuleTest(TestCase):

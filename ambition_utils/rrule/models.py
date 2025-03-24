@@ -65,10 +65,21 @@ class RRuleManager(models.Manager):
         # Build a list of rrules that get returned from the handler
         rrules = []
         for instance in instances:
-            rrules.extend(instance.handle())
+            handler_rrules = instance.handle()
+            if handler_rrules:
+                rrules.extend(handler_rrules)
 
         # Bulk update the next occurrences
         RRule.objects.update_next_occurrences(rrule_objects=rrules)
+
+        # Update the last handled time
+        handler_paths = [
+            f"{instance.__class__.__module__}.{instance.__class__.__name__}"
+            for instance in instances
+        ]
+        RRule.objects.filter(
+            occurrence_handler_path__in=handler_paths
+        ).update(time_last_handled=datetime.utcnow())
 
     def process_related_model_handlers(self, limit=None, filters=None):
         # Get the rrule objects that are overdue and need to be handled
@@ -125,6 +136,7 @@ class RRuleManager(models.Manager):
         ).filter(
             row_num=1
         ).order_by(
+            F('time_last_handled').asc(nulls_first=True),
             'next_occurrence',
             'occurrence_handler_path'
         )
