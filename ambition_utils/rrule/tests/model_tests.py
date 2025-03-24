@@ -325,7 +325,7 @@ class RRuleManagerTest(TestCase):
 
         no_op_rrule1.refresh_from_db()
         no_op_rrule2.refresh_from_db()
-        rrule1.refresh_from_db()    
+        rrule1.refresh_from_db()
         self.assertEqual(no_op_rrule1.time_last_handled, datetime.datetime(2017, 1, 4))
         self.assertEqual(no_op_rrule2.time_last_handled, datetime.datetime(2017, 1, 4))
         self.assertEqual(rrule1.time_last_handled, datetime.datetime(2017, 1, 3))
@@ -503,7 +503,7 @@ class RRuleTest(TestCase):
         )
         no_op_program1.start_recurrence = rrule1
         no_op_program1.save()
-        
+
         no_op_program2 = Program.objects.create(name='Program 1')
         rrule2 = RRule.objects.create(
             rrule_params={
@@ -567,7 +567,6 @@ class RRuleTest(TestCase):
         self.assertEqual(no_op_program1.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
         self.assertEqual(no_op_program2.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
         self.assertEqual(program.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
-
 
     def test_related_object_handlers_invalid_handler(self):
         """
