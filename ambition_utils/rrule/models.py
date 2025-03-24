@@ -191,7 +191,7 @@ class RRule(models.Model):
     day_offset = models.SmallIntegerField(blank=True, null=True)
 
     # The last time we handled this rrule for overdue occurrences
-    time_last_handled = models.DateTimeField(null=True, default=None)
+    time_last_handled = models.DateTimeField(null=True, default=None, db_index=True)
 
     # Custom object manager
     objects = RRuleManager()
