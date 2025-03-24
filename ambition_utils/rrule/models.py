@@ -78,6 +78,7 @@ class RRuleManager(models.Manager):
             related_object_id__isnull=False,
             **(filters or {})
         ).order_by(
+            F('time_last_handled').asc(nulls_first=True),
             'next_occurrence',
             'id'
         ).prefetch_related(
@@ -86,6 +87,8 @@ class RRuleManager(models.Manager):
         if limit:
             rrule_objects = rrule_objects[:limit]
 
+        rrule_objects = list(rrule_objects)
+        rrule_objects_ids = [rrule_object.id for rrule_object in rrule_objects]
         rrules_to_advance = []
         for rrule_object in rrule_objects:
             if hasattr(rrule_object.related_object, rrule_object.related_object_handler_name):
@@ -98,6 +101,10 @@ class RRuleManager(models.Manager):
         # Bulk update the next occurrences
         rrules_to_advance = RRule.objects.update_next_occurrences(rrule_objects=rrules_to_advance)
 
+        # Update the last handled time
+        RRule.objects.filter(id__in=rrule_objects_ids).update(time_last_handled=datetime.utcnow())
+
+        # Return the rules we advanced
         return rrules_to_advance
 
     def overdue_handler_class_instances(self, limit=None, **kwargs):
@@ -170,6 +177,9 @@ class RRule(models.Model):
 
     # An optional number of days to offset occurrences by
     day_offset = models.SmallIntegerField(blank=True, null=True)
+
+    # The last time we handled this rrule for overdue occurrences
+    time_last_handled = models.DateTimeField(null=True, default=None)
 
     # Custom object manager
     objects = RRuleManager()

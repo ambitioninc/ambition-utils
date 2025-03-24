@@ -421,6 +421,90 @@ class RRuleTest(TestCase):
             self.assertEqual(program2.start_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 9))
             self.assertEqual(program2.end_recurrence.next_occurrence, datetime.datetime(2022, 6, 2, 17))
 
+    def test_related_object_handlers_no_op(self):
+        """
+        Test a scenario where the handler of the object is no-op and does not progress the rule
+        """
+
+        no_op_program1 = Program.objects.create(name='Program 1')
+        rrule1 = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 9),
+                'byhour': 9,
+            },
+            related_object=no_op_program1,
+            related_object_handler_name='handle_no_op',
+        )
+        no_op_program1.start_recurrence = rrule1
+        no_op_program1.save()
+        
+        no_op_program2 = Program.objects.create(name='Program 1')
+        rrule2 = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 9),
+                'byhour': 9,
+            },
+            related_object=no_op_program1,
+            related_object_handler_name='handle_no_op',
+        )
+        no_op_program2.start_recurrence = rrule2
+        no_op_program2.save()
+
+        program = Program.objects.create(name='Program 1')
+        rrule3 = RRule.objects.create(
+            rrule_params={
+                'freq': rrule.DAILY,
+                'interval': 1,
+                'dtstart': datetime.datetime(2022, 6, 1, 9),
+                'byhour': 9,
+            },
+            related_object=program,
+            related_object_handler_name='handle_start_recurrence',
+        )
+        program.start_recurrence = rrule3
+        program.save()
+
+        # Run with a limit of 1, we should handle the no-op program
+        with freeze_time(datetime.datetime(2022, 6, 1, 9)):
+            RRule.objects.handle_overdue(related_model_handler_limit=1)
+
+        # Make sure only the no-op program is handled
+        no_op_program1.refresh_from_db()
+        no_op_program2.refresh_from_db()
+        program.refresh_from_db()
+        self.assertEqual(no_op_program1.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
+        self.assertEqual(no_op_program2.start_recurrence.time_last_handled, None)
+        self.assertEqual(program.start_recurrence.time_last_handled, None)
+
+        # Run with a limit of 1 again , we should handle the no-op program2
+        with freeze_time(datetime.datetime(2022, 6, 1, 9)):
+            RRule.objects.handle_overdue(related_model_handler_limit=1)
+
+        # Make sure only the no-op program is handled
+        no_op_program1.refresh_from_db()
+        no_op_program2.refresh_from_db()
+        program.refresh_from_db()
+        self.assertEqual(no_op_program1.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
+        self.assertEqual(no_op_program2.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
+        self.assertEqual(program.start_recurrence.time_last_handled, None)
+
+        # Run with a limit of 1 again , we should handle the program
+        with freeze_time(datetime.datetime(2022, 6, 1, 9)):
+            RRule.objects.handle_overdue(related_model_handler_limit=1)
+
+        # Make sure only the program is handled
+        no_op_program1.refresh_from_db()
+        no_op_program2.refresh_from_db()
+        program.refresh_from_db()
+        self.assertEqual(no_op_program1.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
+        self.assertEqual(no_op_program2.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
+        self.assertEqual(program.start_recurrence.time_last_handled, datetime.datetime(2022, 6, 1, 9))
+
+
     def test_related_object_handlers_invalid_handler(self):
         """
         Hits the else block when the handler path is not valid
