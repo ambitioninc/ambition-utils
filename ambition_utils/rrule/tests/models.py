@@ -24,3 +24,9 @@ class Program(models.Model):
         self.end_called += 1
         self.save()
         return rrule
+
+    def handle_no_op(self, rrule):
+        """
+        A no op handler that does nothing
+        """
+        return None
