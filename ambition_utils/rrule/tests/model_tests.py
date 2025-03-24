@@ -248,8 +248,8 @@ class RRuleManagerTest(TestCase):
         # except for handler two which should occur three times
         expected_classes = [
             {HandlerTwo},
-            {HandlerOne},
             {HandlerThree},
+            {HandlerOne},
             {HandlerTwo},
             {HandlerOne},
             {HandlerThree},
